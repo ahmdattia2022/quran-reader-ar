@@ -56,11 +56,19 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
   <!-- Robots / SEO -->
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow" />
+  <meta name="bingbot" content="index, follow" />
 
   <!-- Sitemap discovery -->
   <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
+  <!-- Alternate hreflang for Arabic (reinforces language targeting) -->
+  <link rel="alternate" hreflang="ar" href={canonicalUrl} />
+  <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+
+  <!-- Google Search Console verification slot (replace content value after verifying) -->
+  <!-- <meta name="google-site-verification" content="PASTE_YOUR_CODE_HERE" /> -->
 
   {jsonLd && (
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />

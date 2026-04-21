@@ -10,7 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "fetch:quran": "node scripts/fetch-quran.mjs"
+    "fetch:quran": "node scripts/fetch-quran.mjs",
+    "ping:indexnow": "node scripts/ping-indexnow.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
