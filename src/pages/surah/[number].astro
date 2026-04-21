@@ -1,0 +1,417 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import {
+  allSurahs,
+  surahIndex,
+  arabicDigits,
+  revelationTypeAr,
+  shortSurahName,
+  RECITERS,
+  DEFAULT_RECITER,
+  audioUrl,
+} from '../../lib/quran.ts';
+
+export async function getStaticPaths() {
+  return allSurahs.map((s) => ({
+    params: { number: String(s.number) },
+    props: { surah: s },
+  }));
+}
+
+const { surah } = Astro.props;
+const shortName = shortSurahName(surah.name);
+const prev = surah.number > 1 ? surahIndex[surah.number - 2] : null;
+const next = surah.number < 114 ? surahIndex[surah.number] : null;
+
+// The ayahs from the API include "بسم الله الرحمن الرحيم" prefix on the first ayah
+// for most surahs. Surah 1 (Al-Fatihah) has it as ayah 1, surah 9 (At-Tawbah) has none.
+// For display, we show basmala as a header (except for surah 1 and 9).
+const showBasmalaHeader = surah.number !== 1 && surah.number !== 9;
+const BASMALA = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
+
+// Strip leading basmala from the first ayah if present (for surahs other than 1 & 9)
+function stripBasmala(text: string): string {
+  const markers = ['بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ'];
+  for (const m of markers) {
+    if (text.startsWith(m)) return text.slice(m.length).trim();
+  }
+  return text;
+}
+
+const ayahs = surah.ayahs.map((a, i) => ({
+  ...a,
+  text: (i === 0 && showBasmalaHeader) ? stripBasmala(a.text) : a.text,
+}));
+
+const title = `سورة ${shortName} مكتوبة كاملة - قراءة واستماع وتفسير | القرآن الكريم`;
+const description = `سورة ${shortName} (${surah.englishName}) - ${revelationTypeAr(surah.revelationType)} - ${arabicDigits(surah.numberOfAyahs)} آية. اقرأ السورة كاملة بالرسم العثماني، مع التفسير الميسر والاستماع بأصوات كبار القراء.`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: `سورة ${shortName}`,
+  alternativeHeadline: surah.englishName,
+  inLanguage: 'ar',
+  articleSection: 'القرآن الكريم',
+  description,
+  url: new URL(Astro.url.pathname, Astro.site).toString(),
+  isPartOf: {
+    '@type': 'Book',
+    name: 'القرآن الكريم',
+    inLanguage: 'ar',
+  },
+  about: {
+    '@type': 'Thing',
+    name: `سورة ${shortName}`,
+  },
+};
+---
+<BaseLayout
+  title={title}
+  description={description}
+  ogType="article"
+  jsonLd={jsonLd}
+>
+  <!-- Surah header -->
+  <section class="relative border-b border-slate-800/60">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-950/30 via-slate-950 to-slate-950"></div>
+
+    <div class="mx-auto max-w-4xl px-4 pt-10 pb-8 sm:px-6 md:pt-14">
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb" class="mb-6 text-sm">
+        <ol class="flex items-center gap-2 text-slate-400">
+          <li><a href="/" class="transition hover:text-emerald-400">السور</a></li>
+          <li class="text-slate-600">‹</li>
+          <li class="text-slate-300">سورة {shortName}</li>
+        </ol>
+      </nav>
+
+      <div class="text-center">
+        <div class="inline-flex items-center gap-3 text-sm text-slate-400">
+          <span class="rounded-full bg-slate-800 px-3 py-1">رقم {arabicDigits(surah.number)}</span>
+          <span class={`rounded-full px-3 py-1 ${surah.revelationType === 'Meccan' ? 'bg-amber-500/10 text-amber-400' : 'bg-sky-500/10 text-sky-400'}`}>
+            {revelationTypeAr(surah.revelationType)}
+          </span>
+          <span class="rounded-full bg-slate-800 px-3 py-1">{arabicDigits(surah.numberOfAyahs)} آية</span>
+        </div>
+
+        <h1 class="mt-5 text-4xl font-bold text-white md:text-6xl">
+          سورة {shortName}
+        </h1>
+        <p class="mt-2 text-sm text-slate-500">
+          {surah.englishName} · {surah.englishNameTranslation}
+        </p>
+      </div>
+
+      <!-- Audio controls -->
+      <div class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur">
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            id="play-all-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400"
+          >
+            <svg id="play-icon" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg id="pause-icon" class="hidden h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+            <span id="play-label">تشغيل السورة</span>
+          </button>
+
+          <div class="flex-1 min-w-[180px]">
+            <label for="reciter-select" class="sr-only">اختر القارئ</label>
+            <select
+              id="reciter-select"
+              class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            >
+              {RECITERS.map((r) => (
+                <option value={r.id} selected={r.id === DEFAULT_RECITER}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            id="toggle-tafsir-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 transition hover:border-emerald-500 hover:text-emerald-400"
+            aria-pressed="false"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>إظهار التفسير</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ayahs -->
+  <section class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-12">
+    {showBasmalaHeader && (
+      <div class="quran-text mb-10 text-center text-emerald-300" set:html={BASMALA}></div>
+    )}
+
+    <div id="ayahs" class="space-y-5">
+      {ayahs.map((a) => (
+        <article
+          class="ayah-card rounded-2xl border border-slate-800 bg-slate-900/30 p-5 md:p-6"
+          data-ayah={a.numberInSurah}
+          data-ayah-global={a.numberInQuran}
+          id={`ayah-${a.numberInSurah}`}
+        >
+          <!-- Ayah header -->
+          <div class="mb-4 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-400 arabic-num">
+                {arabicDigits(a.numberInSurah)}
+              </span>
+              <span class="text-xs text-slate-500">
+                جزء {arabicDigits(a.juz)} · صفحة {arabicDigits(a.page)}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button
+                class="play-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-emerald-400"
+                data-ayah-global={a.numberInQuran}
+                data-ayah-local={a.numberInSurah}
+                title="تشغيل هذه الآية"
+                aria-label={`تشغيل الآية ${a.numberInSurah}`}
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <button
+                class="copy-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-emerald-400"
+                data-ayah-text={a.text}
+                data-ayah-local={a.numberInSurah}
+                title="نسخ الآية"
+                aria-label={`نسخ الآية ${a.numberInSurah}`}
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Ayah text -->
+          <p class="quran-text text-slate-50">
+            {a.text}
+            <span class="ayah-number">﴿{arabicDigits(a.numberInSurah)}﴾</span>
+          </p>
+
+          <!-- Tafsir (hidden by default, toggled on) -->
+          {a.tafsir && (
+            <div class="tafsir-block mt-4 hidden rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                التفسير الميسر
+              </p>
+              <p class="tafsir-text">{a.tafsir}</p>
+            </div>
+          )}
+        </article>
+      ))}
+    </div>
+
+    <!-- Prev / Next nav -->
+    <nav class="mt-12 grid gap-3 sm:grid-cols-2">
+      {prev ? (
+        <a href={`/surah/${prev.number}`} class="group flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60">
+          <svg class="h-5 w-5 text-slate-500 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          <div class="flex-1 text-right">
+            <p class="text-xs text-slate-500">السورة السابقة</p>
+            <p class="font-semibold text-white">{shortSurahName(prev.name)}</p>
+          </div>
+        </a>
+      ) : <div></div>}
+      {next && (
+        <a href={`/surah/${next.number}`} class="group flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60">
+          <div class="flex-1">
+            <p class="text-xs text-slate-500">السورة التالية</p>
+            <p class="font-semibold text-white">{shortSurahName(next.name)}</p>
+          </div>
+          <svg class="h-5 w-5 rotate-180 text-slate-500 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+      )}
+    </nav>
+  </section>
+
+  <!-- Hidden audio element -->
+  <audio id="player" preload="none"></audio>
+
+  <!-- Toast notification for copy -->
+  <div id="toast" class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-800 px-4 py-2.5 text-sm text-white opacity-0 shadow-xl ring-1 ring-emerald-500/30 transition-opacity duration-300 pointer-events-none"></div>
+
+  <script is:inline define:vars={{ totalAyahs: surah.numberOfAyahs, firstGlobal: ayahs[0].numberInQuran }}>
+    (function () {
+      const audio = document.getElementById('player');
+      const playBtn = document.getElementById('play-all-btn');
+      const playIcon = document.getElementById('play-icon');
+      const pauseIcon = document.getElementById('pause-icon');
+      const playLabel = document.getElementById('play-label');
+      const reciterSelect = document.getElementById('reciter-select');
+      const tafsirBtn = document.getElementById('toggle-tafsir-btn');
+      const toast = document.getElementById('toast');
+      const ayahCards = document.querySelectorAll('[data-ayah]');
+
+      const RECITERS = {
+        'ar.alafasy': 128,
+        'ar.abdulbasitmurattal': 192,
+        'ar.abdurrahmaansudais': 192,
+        'ar.saoodshuraym': 64,
+        'ar.mahermuaiqly': 128,
+        'ar.minshawi': 128,
+        'ar.husary': 128,
+        'ar.hudhaify': 128,
+        'ar.ibrahimakhbar': 32,
+        'ar.muhammadayyoub': 128,
+        'ar.muhammadjibreel': 128,
+      };
+
+      let currentReciter = localStorage.getItem('qr_reciter') || 'ar.alafasy';
+      if (reciterSelect) reciterSelect.value = currentReciter;
+
+      function audioUrlFor(globalNumber, reciterId) {
+        const bitrate = RECITERS[reciterId] || 128;
+        return `https://cdn.islamic.network/quran/audio/${bitrate}/${reciterId}/${globalNumber}.mp3`;
+      }
+
+      let currentAyahLocal = 0; // 1-based; 0 = not playing
+      let playingAll = false;
+
+      function setPlayingUI(isPlaying) {
+        if (isPlaying) {
+          playIcon.classList.add('hidden');
+          pauseIcon.classList.remove('hidden');
+          playLabel.textContent = 'إيقاف';
+        } else {
+          playIcon.classList.remove('hidden');
+          pauseIcon.classList.add('hidden');
+          playLabel.textContent = 'تشغيل السورة';
+        }
+      }
+
+      function highlightAyah(local) {
+        document.querySelectorAll('.ayah-active').forEach((el) => el.classList.remove('ayah-active'));
+        if (local < 1) return;
+        const el = document.getElementById(`ayah-${local}`);
+        if (el) {
+          el.classList.add('ayah-active');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+
+      function playAyah(local) {
+        currentAyahLocal = local;
+        const globalNum = firstGlobal + (local - 1);
+        audio.src = audioUrlFor(globalNum, currentReciter);
+        audio.play().catch((e) => console.warn('Audio play failed:', e));
+        highlightAyah(local);
+        setPlayingUI(true);
+        // Persist last-played position
+        const surahMatch = location.pathname.match(/\/surah\/(\d+)/);
+        if (surahMatch) {
+          localStorage.setItem('qr_last_read', JSON.stringify({ surah: Number(surahMatch[1]), ayah: local }));
+        }
+      }
+
+      audio.addEventListener('ended', () => {
+        if (playingAll && currentAyahLocal < totalAyahs) {
+          playAyah(currentAyahLocal + 1);
+        } else {
+          playingAll = false;
+          setPlayingUI(false);
+          highlightAyah(0);
+        }
+      });
+
+      audio.addEventListener('pause', () => {
+        if (audio.ended) return;
+        setPlayingUI(false);
+      });
+
+      audio.addEventListener('play', () => setPlayingUI(true));
+
+      playBtn.addEventListener('click', () => {
+        if (!audio.paused && !audio.ended) {
+          playingAll = false;
+          audio.pause();
+          return;
+        }
+        if (audio.src && audio.currentTime > 0 && !audio.ended) {
+          playingAll = true;
+          audio.play();
+          return;
+        }
+        playingAll = true;
+        playAyah(1);
+      });
+
+      reciterSelect.addEventListener('change', (e) => {
+        currentReciter = e.target.value;
+        localStorage.setItem('qr_reciter', currentReciter);
+        if (!audio.paused && currentAyahLocal > 0) {
+          const wasPlayingAll = playingAll;
+          playAyah(currentAyahLocal);
+          playingAll = wasPlayingAll;
+        }
+      });
+
+      // Per-ayah play buttons
+      document.querySelectorAll('.play-ayah-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const local = Number(btn.dataset.ayahLocal);
+          playingAll = false;
+          playAyah(local);
+        });
+      });
+
+      // Copy buttons
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
+      }
+
+      document.querySelectorAll('.copy-ayah-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const text = btn.dataset.ayahText;
+          const num = btn.dataset.ayahLocal;
+          try {
+            await navigator.clipboard.writeText(`${text} ﴿${num}﴾`);
+            showToast('تم نسخ الآية');
+          } catch {
+            showToast('تعذّر النسخ');
+          }
+        });
+      });
+
+      // Tafsir toggle
+      let tafsirVisible = localStorage.getItem('qr_tafsir') === 'true';
+      function applyTafsir() {
+        document.querySelectorAll('.tafsir-block').forEach((el) => {
+          el.classList.toggle('hidden', !tafsirVisible);
+        });
+        tafsirBtn.setAttribute('aria-pressed', String(tafsirVisible));
+        tafsirBtn.querySelector('span').textContent = tafsirVisible ? 'إخفاء التفسير' : 'إظهار التفسير';
+        if (tafsirVisible) {
+          tafsirBtn.classList.add('border-emerald-500', 'text-emerald-400');
+        } else {
+          tafsirBtn.classList.remove('border-emerald-500', 'text-emerald-400');
+        }
+      }
+      applyTafsir();
+      tafsirBtn.addEventListener('click', () => {
+        tafsirVisible = !tafsirVisible;
+        localStorage.setItem('qr_tafsir', String(tafsirVisible));
+        applyTafsir();
+      });
+    })();
+  </script>
+</BaseLayout>

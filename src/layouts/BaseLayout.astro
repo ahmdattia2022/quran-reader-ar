@@ -1,0 +1,110 @@
+---
+import '../styles/global.css';
+
+export interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  ogType?: 'website' | 'article';
+  jsonLd?: Record<string, any>;
+}
+
+const { title, description, canonical, ogType = 'website', jsonLd } = Astro.props;
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
+---
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+  <meta name="theme-color" content="#064e3b" />
+
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonicalUrl} />
+
+  <!-- Language / locale signals -->
+  <meta http-equiv="Content-Language" content="ar" />
+  <meta name="language" content="Arabic" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content={ogType} />
+  <meta property="og:locale" content="ar_AR" />
+  <meta property="og:site_name" content="القرآن الكريم" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonicalUrl} />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+
+  <!-- Fonts: Noto Sans Arabic for UI, Amiri Quran loaded in CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://cdn.islamic.network" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Amiri:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- Robots / SEO -->
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+  <meta name="googlebot" content="index, follow" />
+
+  <!-- Sitemap discovery -->
+  <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
+  {jsonLd && (
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  )}
+</head>
+<body class="flex min-h-dvh flex-col">
+  <header class="sticky top-0 z-40 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md">
+    <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+      <a href="/" class="flex items-center gap-2.5 font-bold text-white">
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30">
+          <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </span>
+        <span class="text-lg">القرآن الكريم</span>
+      </a>
+      <nav class="flex items-center gap-1 text-sm sm:gap-2">
+        <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400">
+          السور
+        </a>
+        <a href="/about" class="rounded-md px-3 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400">
+          عن الموقع
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <slot />
+  </main>
+
+  <footer class="border-t border-slate-800/60 bg-slate-950/60">
+    <div class="mx-auto max-w-5xl px-4 py-8 text-center text-sm text-slate-400 sm:px-6">
+      <p>
+        مصحف إلكتروني برواية حفص عن عاصم · نص عثماني
+      </p>
+      <p class="mt-2 text-xs text-slate-500">
+        البيانات مصدرها <a href="https://alquran.cloud" class="underline hover:text-emerald-400" rel="noopener" target="_blank">alquran.cloud</a>
+        · التلاوة من <a href="https://cdn.islamic.network" class="underline hover:text-emerald-400" rel="noopener" target="_blank">islamic.network</a>
+      </p>
+      <p class="mt-3 text-xs text-slate-600">
+        &copy; {new Date().getFullYear()} · نسأل الله أن ينفع به
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

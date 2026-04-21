@@ -1,0 +1,173 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { surahIndex, arabicDigits, revelationTypeAr, shortSurahName } from '../lib/quran.ts';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'القرآن الكريم',
+  alternateName: 'مصحف إلكتروني',
+  url: Astro.site?.toString(),
+  inLanguage: 'ar',
+  description: 'قراءة القرآن الكريم كاملاً بالنص العثماني مع التفسير الميسر والاستماع للتلاوة لأشهر القراء',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: { '@type': 'EntryPoint', urlTemplate: `${Astro.site}?q={search_term_string}` },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
+---
+<BaseLayout
+  title="القرآن الكريم كاملاً - مصحف إلكتروني بالنص العثماني والتفسير والتلاوة"
+  description="قراءة القرآن الكريم كاملاً بالرسم العثماني مع التفسير الميسر والاستماع بأصوات كبار القراء مشاري العفاسي، عبد الباسط، السديس، الحذيفي، المعيقلي والمنشاوي. جميع السور ١١٤ سورة."
+  jsonLd={jsonLd}
+>
+  <!-- Hero -->
+  <section class="relative overflow-hidden border-b border-slate-800/60">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-950/40 via-slate-950 to-slate-950"></div>
+    <div class="absolute inset-0 -z-10 opacity-30 [background-image:radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.3),transparent_50%)]"></div>
+
+    <div class="mx-auto max-w-5xl px-4 pt-14 pb-10 sm:px-6 md:pt-20 md:pb-14">
+      <div class="text-center">
+        <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+          </span>
+          برواية حفص عن عاصم · نص عثماني
+        </div>
+
+        <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold leading-tight text-white md:text-6xl">
+          القـرآن الـكـريـم
+        </h1>
+        <p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-300 md:text-lg">
+          مصحف إلكتروني كامل بالرسم العثماني، مع التفسير الميسر، والاستماع لتلاوات كبار القراء.
+          جميع السور مفهرسة وسريعة التحميل.
+        </p>
+
+        <!-- Stats strip -->
+        <dl class="mx-auto mt-8 grid max-w-xl grid-cols-3 gap-3 text-center">
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+            <dt class="text-[11px] uppercase tracking-wider text-slate-500">السور</dt>
+            <dd class="mt-1 text-2xl font-bold text-emerald-400">{arabicDigits(surahIndex.length)}</dd>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+            <dt class="text-[11px] uppercase tracking-wider text-slate-500">الآيات</dt>
+            <dd class="mt-1 text-2xl font-bold text-emerald-400">{arabicDigits(totalAyahs)}</dd>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+            <dt class="text-[11px] uppercase tracking-wider text-slate-500">القراء</dt>
+            <dd class="mt-1 text-2xl font-bold text-emerald-400">{arabicDigits(11)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Search -->
+      <div class="mx-auto mt-10 max-w-2xl">
+        <div class="relative">
+          <svg class="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
+          </svg>
+          <input
+            id="surah-search"
+            type="search"
+            placeholder="ابحث عن سورة... (مثال: البقرة، يس، الفاتحة)"
+            class="w-full rounded-xl border border-slate-700 bg-slate-900/70 py-3.5 pr-12 pl-4 text-base text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Surah list -->
+  <section class="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-14">
+    <h2 class="mb-6 text-xl font-bold text-white md:text-2xl">فهرس السور</h2>
+
+    <ul
+      id="surah-list"
+      class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      {surahIndex.map((s) => (
+        <li
+          data-surah-name={shortSurahName(s.name)}
+          data-surah-english={s.englishName.toLowerCase()}
+          data-surah-number={s.number}
+        >
+          <a
+            href={`/surah/${s.number}`}
+            class="group relative flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-3.5 transition hover:border-emerald-500/60 hover:bg-slate-900/80"
+          >
+            <!-- Number medallion -->
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center">
+              <svg class="absolute h-11 w-11 text-emerald-500/30 transition group-hover:text-emerald-500/60" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M22 2 L40 12 L40 32 L22 42 L4 32 L4 12 Z"/>
+              </svg>
+              <span class="relative text-sm font-bold text-emerald-400 arabic-num">{arabicDigits(s.number)}</span>
+            </div>
+
+            <!-- Name + meta -->
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline gap-2">
+                <h3 class="truncate font-semibold text-white text-lg">{shortSurahName(s.name)}</h3>
+                <span class="text-xs text-slate-500">{s.englishName}</span>
+              </div>
+              <p class="mt-0.5 text-xs text-slate-400">
+                <span class={s.revelationType === 'Meccan' ? 'text-amber-400' : 'text-sky-400'}>
+                  {revelationTypeAr(s.revelationType)}
+                </span>
+                <span class="mx-1.5 text-slate-700">·</span>
+                <span>{arabicDigits(s.numberOfAyahs)} آية</span>
+              </p>
+            </div>
+
+            <svg class="h-4 w-4 shrink-0 rotate-180 text-slate-600 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <p id="no-results" class="hidden py-8 text-center text-slate-400">
+      لا توجد نتائج مطابقة
+    </p>
+  </section>
+
+  <script is:inline>
+    (function () {
+      const input = document.getElementById('surah-search');
+      const list = document.getElementById('surah-list');
+      const empty = document.getElementById('no-results');
+      if (!input || !list) return;
+
+      const items = Array.from(list.querySelectorAll('[data-surah-name]'));
+
+      function normalize(s) {
+        return String(s || '')
+          .toLowerCase()
+          .replace(/[ً-ْٰـ]/g, '') // remove tashkeel + tatweel
+          .replace(/[إأآا]/g, 'ا')
+          .replace(/ى/g, 'ي')
+          .replace(/ة/g, 'ه')
+          .trim();
+      }
+
+      input.addEventListener('input', (e) => {
+        const q = normalize(e.target.value);
+        let visible = 0;
+        for (const li of items) {
+          const name = normalize(li.dataset.surahName);
+          const en = (li.dataset.surahEnglish || '').toLowerCase();
+          const num = li.dataset.surahNumber;
+          const match = !q || name.includes(q) || en.includes(q) || num === q;
+          li.style.display = match ? '' : 'none';
+          if (match) visible++;
+        }
+        empty.classList.toggle('hidden', visible > 0);
+      });
+    })();
+  </script>
+</BaseLayout>

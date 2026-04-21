@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* Amiri Quran for Uthmani script (Quran text), Amiri for body Arabic */
+@font-face {
+  font-family: 'AmiriQuran';
+  src: url('https://cdn.jsdelivr.net/gh/aliftype/amiri@main/fonts/AmiriQuran-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  font-family: 'Noto Sans Arabic', 'Segoe UI', 'Tahoma', system-ui, sans-serif;
+  direction: rtl;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100;
+  min-height: 100dvh;
+}
+
+/* Quran text: use AmiriQuran for authentic Uthmani script */
+.quran-text {
+  font-family: 'AmiriQuran', 'Traditional Arabic', 'Amiri', 'Scheherazade New', serif;
+  font-size: clamp(1.75rem, 1.1rem + 2.2vw, 2.75rem);
+  line-height: 2.4;
+  letter-spacing: 0;
+  word-spacing: 0.1em;
+  text-align: center;
+  unicode-bidi: plaintext;
+}
+
+.tafsir-text {
+  font-family: 'Noto Sans Arabic', 'Tahoma', sans-serif;
+  font-size: 1rem;
+  line-height: 1.9;
+  color: rgb(203 213 225);
+}
+
+/* Ayah number marker (Arabic-Indic digits rendered inside circle) */
+.ayah-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'AmiriQuran', serif;
+  font-size: 0.95em;
+  min-width: 2em;
+  height: 2em;
+  padding: 0 0.4em;
+  margin: 0 0.3em;
+  color: rgb(52 211 153);
+  vertical-align: middle;
+}
+
+/* Active ayah highlight when playing audio */
+.ayah-active {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+  border-color: rgb(16 185 129) !important;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 8px 24px -8px rgba(16, 185, 129, 0.3);
+}
+
+/* Smooth reveal for ayah cards */
+.ayah-card {
+  transition: background-color 200ms, border-color 200ms, box-shadow 200ms;
+}
+
+/* Arabic-Indic numerals helper */
+.arabic-num {
+  font-feature-settings: "anum" on;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgb(15 23 42); }
+::-webkit-scrollbar-thumb { background: rgb(51 65 85); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(71 85 105); }
+
+/* Focus visible — accessibility */
+:focus-visible {
+  outline: 2px solid rgb(52 211 153);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Print-friendly (for users who want to print a surah) */
+@media print {
+  body { background: white; color: black; }
+  .no-print { display: none !important; }
+  .quran-text { color: black; }
+}
