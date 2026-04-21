@@ -67,8 +67,8 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
   <link rel="alternate" hreflang="ar" href={canonicalUrl} />
   <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
 
-  <!-- Google Search Console verification slot (replace content value after verifying) -->
-  <!-- <meta name="google-site-verification" content="PASTE_YOUR_CODE_HERE" /> -->
+  <!-- Google Search Console verification (meta tag method — avoids Cloudflare's .html stripping) -->
+  <meta name="google-site-verification" content="PASTE_YOUR_CODE_HERE" />
 
   {jsonLd && (
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
