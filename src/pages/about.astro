@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import contentHash from '../data/content-hash.json';
 ---
 <BaseLayout
   title="عن الموقع - القرآن الكريم مصحف إلكتروني"
@@ -15,27 +16,71 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <h2 class="mt-8 text-2xl font-bold text-white">ماذا يوفر الموقع؟</h2>
       <ul class="space-y-3 pr-6 list-disc marker:text-emerald-400">
-        <li>قراءة القرآن الكريم كاملاً (١١٤ سورة) بالرسم العثماني برواية حفص عن عاصم.</li>
-        <li>الاستماع إلى التلاوة بأصوات كبار القراء: مشاري العفاسي، عبد الباسط، السديس، الحذيفي، المعيقلي، المنشاوي، الحصري وغيرهم.</li>
+        <li>القرآن الكريم كاملاً (١١٤ سورة) بالرسم العثماني برواية حفص عن عاصم.</li>
+        <li>عرض المصحف <strong class="text-white">صفحة صفحة</strong> (٦٠٤ صفحات بترتيب المصحف المدني)، مع التنقل السريع بين الصفحات.</li>
+        <li>تقسيم <strong class="text-white">الأجزاء الثلاثين</strong> للقراءة المنتظمة.</li>
+        <li>الاستماع للتلاوة بأصوات كبار القراء: مشاري العفاسي، عبد الباسط، السديس، الحذيفي، المعيقلي، المنشاوي، الحصري وغيرهم.</li>
         <li>التفسير الميسر لكل آية، بإمكانك إظهاره أو إخفاؤه.</li>
-        <li>البحث السريع عن السور بالاسم العربي أو الإنجليزي أو رقم السورة.</li>
-        <li>حفظ آخر موضع قرأته تلقائياً ليسهل متابعة القراءة.</li>
-        <li>نسخ أي آية بضغطة واحدة.</li>
+        <li>إعدادات قراءة <strong class="text-white">حجم الخط، تباعد الأسطر، والمظهر الليلي</strong> — تُحفظ في متصفحك.</li>
+        <li>بحث سريع عن السور بالاسم العربي أو الإنجليزي أو الرقم.</li>
+        <li>روابط مباشرة لأي آية (<code class="rounded bg-slate-800/70 px-1.5 py-0.5 text-sm">/surah/36/?ayah=1</code>).</li>
       </ul>
 
       <h2 class="mt-8 text-2xl font-bold text-white">مصادر البيانات</h2>
       <p>
-        النص القرآني والتفسير مصدرهما من
-        <a href="https://alquran.cloud" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">alquran.cloud</a>.
+        النص القرآني والتفسير الميسر مصدرهما
+        <a href="https://alquran.cloud" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">alquran.cloud</a>
+        (الإصدار العثماني + تفسير الميسّر).
         التلاوات الصوتية من
         <a href="https://cdn.islamic.network" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">islamic.network</a>.
         كلا المصدرين مفتوحان ومتاحان للعموم.
       </p>
 
+      <h2 class="mt-8 text-2xl font-bold text-white">التحقق من سلامة النص</h2>
+      <p>
+        نحن ندرك أن أي تغيير في النص القرآني ولو كان حركة واحدة قضية دينية لا يُستهان بها.
+        لذا نحتفظ بـ <strong class="text-white">بصمة SHA-256</strong> لملفات البيانات يمكنك التحقق منها في أي وقت:
+      </p>
+      <div class="mt-4 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-sm">
+        <table class="w-full text-left" dir="ltr">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500">
+              <th class="pr-4 pb-2">File</th>
+              <th class="pr-4 pb-2">SHA-256</th>
+              <th class="pb-2">Bytes</th>
+            </tr>
+          </thead>
+          <tbody class="font-mono text-xs text-slate-300">
+            {Object.entries(contentHash).map(([name, info]) => (
+              <tr class="border-t border-slate-800">
+                <td class="pr-4 py-2 text-emerald-400">{name}</td>
+                <td class="pr-4 py-2 break-all">{(info as any).sha256}</td>
+                <td class="py-2 text-slate-500">{(info as any).bytes.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-sm text-slate-400">
+        البصمة نفسها متاحة كملف نصي على <a href="/quran-hash.txt" class="text-emerald-400 underline hover:text-emerald-300">/quran-hash.txt</a>.
+        الكود المصدري كامل على <a href="https://github.com/ahmdattia2022/quran-reader-ar" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">GitHub</a> — يمكنك تحميل الملفات بنفسك وإعادة حساب البصمة للتأكد.
+      </p>
+
       <h2 class="mt-8 text-2xl font-bold text-white">هل هو مجاني فعلاً؟</h2>
       <p>
         نعم، بالكامل. الموقع لا يعرض إعلانات، ولا يجمع بياناتك، ولا يطلب تسجيلاً.
-        هو صدقة جارية، نسأل الله أن ينفع به ويتقبله.
+        هو صدقة جارية، نسأل الله أن ينفع به ويتقبله. اقرأ
+        <a href="/privacy/" class="text-emerald-400 underline hover:text-emerald-300">سياسة الخصوصية</a>
+        لتفاصيل ما نفعله (ولا نفعله) ببياناتك.
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">الكود المفتوح</h2>
+      <p>
+        هذا المشروع مفتوح المصدر على
+        <a href="https://github.com/ahmdattia2022/quran-reader-ar" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">GitHub</a>.
+        لو وجدت خطأ أو لديك اقتراح، افتح
+        <a href="https://github.com/ahmdattia2022/quran-reader-ar/issues" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">issue</a>
+        — نتلقى التصحيحات والمساهمات بصدر رحب.
       </p>
 
       <div class="mt-10 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">

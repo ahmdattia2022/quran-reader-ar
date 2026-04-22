@@ -64,8 +64,33 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
         </dl>
       </div>
 
+      <!-- Three-way entry: Surah list / Mushaf pages / Juz -->
+      <div class="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
+        <a href="#surah-list" class="flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 transition hover:bg-emerald-500/10">
+          <svg class="h-6 w-6 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h12"/></svg>
+          <div class="min-w-0 flex-1 text-right">
+            <p class="text-sm font-bold text-white">فهرس السور</p>
+            <p class="text-xs text-slate-400">١١٤ سورة</p>
+          </div>
+        </a>
+        <a href="/mushaf/" class="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/60 p-4 transition hover:border-emerald-500/60">
+          <svg class="h-6 w-6 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v16H4zM13 4h7v16h-7z"/></svg>
+          <div class="min-w-0 flex-1 text-right">
+            <p class="text-sm font-bold text-white">قراءة المصحف</p>
+            <p class="text-xs text-slate-400">٦٠٤ صفحة</p>
+          </div>
+        </a>
+        <a href="/juz/" class="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/60 p-4 transition hover:border-emerald-500/60">
+          <svg class="h-6 w-6 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM3 9h18M9 9v12"/></svg>
+          <div class="min-w-0 flex-1 text-right">
+            <p class="text-sm font-bold text-white">الأجزاء</p>
+            <p class="text-xs text-slate-400">٣٠ جزءًا</p>
+          </div>
+        </a>
+      </div>
+
       <!-- Search -->
-      <div class="mx-auto mt-10 max-w-2xl">
+      <div class="mx-auto mt-6 max-w-2xl">
         <div class="relative">
           <svg class="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>

@@ -1,0 +1,97 @@
+---
+/**
+ * Renders a single mushaf page's fragments with surah headers where
+ * new surahs open on the page. Uses the same Amiri Quran font as
+ * the surah view but with tighter line-height and justified flow
+ * to feel closer to a physical mushaf.
+ */
+import type { MushafPage } from '../lib/mushaf.ts';
+import { stripBasmala } from '../lib/mushaf.ts';
+import { arabicDigits, shortSurahName, revelationTypeAr } from '../lib/quran.ts';
+
+export interface Props {
+  page: MushafPage;
+}
+
+const { page } = Astro.props;
+const BASMALA = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
+---
+<article class="mushaf-page mx-auto w-full max-w-3xl rounded-2xl border border-slate-800 bg-slate-900/30 p-6 md:p-10 lg:p-14">
+  {page.fragments.map((frag, fragIndex) => {
+    const showBasmala = frag.startsSurah && frag.surahNumber !== 1 && frag.surahNumber !== 9;
+    const ayahs = frag.ayahs.map((a, i) => ({
+      ...a,
+      text: i === 0 && showBasmala ? stripBasmala(a.text) : a.text,
+    }));
+    return (
+      <section class={fragIndex > 0 ? 'mt-10 border-t border-slate-800 pt-10' : ''}>
+        {frag.startsSurah && (
+          <header class="mb-6 text-center">
+            <div class="inline-flex flex-col items-center gap-1 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-6 py-3">
+              <div class="text-xs uppercase tracking-wider text-emerald-400">
+                {`سورة ${arabicDigits(frag.surahNumber)} · ${revelationTypeAr(frag.revelationType)}`}
+              </div>
+              <div class="text-2xl font-bold text-white">
+                {shortSurahName(frag.surahName)}
+              </div>
+              <div class="text-xs text-slate-500">{frag.surahEnglishName}</div>
+            </div>
+            {showBasmala && (
+              <p class="quran-text mt-6 text-emerald-300">{BASMALA}</p>
+            )}
+          </header>
+        )}
+
+        <div class="mushaf-flow quran-text text-slate-50">
+          {ayahs.map((a) => (
+            <span class="mushaf-ayah" id={`ayah-${frag.surahNumber}-${a.numberInSurah}`}>
+              {a.text}
+              <span class="mushaf-ayah-mark">۝<span class="mushaf-ayah-num">{arabicDigits(a.numberInSurah)}</span></span>{' '}
+            </span>
+          ))}
+        </div>
+      </section>
+    );
+  })}
+</article>
+
+<style>
+  /* Mushaf-flow: justified, continuous text like a physical mushaf */
+  .mushaf-flow {
+    text-align: justify;
+    text-align-last: center;
+    word-spacing: 0.02em;
+    line-height: calc(var(--line-height-scale, 1) * 2.6);
+    font-size: calc(clamp(1.6rem, 1rem + 2vw, 2.4rem) * var(--font-scale, 1));
+  }
+  .mushaf-ayah {
+    /* treat ayah markers inline so text flows like real mushaf */
+    display: inline;
+  }
+  .mushaf-ayah-mark {
+    display: inline-block;
+    position: relative;
+    font-family: 'AmiriQuran', 'Amiri', serif;
+    color: rgb(52 211 153);
+    margin: 0 0.15em;
+    font-size: 0.9em;
+  }
+  .mushaf-ayah-num {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    font-size: 0.55em;
+    color: rgb(16 185 129);
+    font-weight: 400;
+  }
+  /* Highlight when ayah is the scroll target via URL */
+  .mushaf-ayah:target,
+  .ayah-highlight {
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.25), transparent);
+    border-radius: 0.5rem;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
+    padding: 0.2em 0.3em;
+    transition: all 400ms;
+  }
+</style>

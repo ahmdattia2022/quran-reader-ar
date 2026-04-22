@@ -1,0 +1,88 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { mushafPages, MUSHAF_TOTAL_PAGES } from '../../lib/mushaf.ts';
+import { arabicDigits, shortSurahName } from '../../lib/quran.ts';
+
+// Group pages into juz sections for the grid
+const juzSections = new Map<number, Array<{ pageNumber: number; firstSurah: string }>>();
+for (const p of mushafPages) {
+  const firstFrag = p.fragments[0];
+  const firstSurah = firstFrag ? shortSurahName(firstFrag.surahName) : '';
+  if (!juzSections.has(p.juz)) juzSections.set(p.juz, []);
+  juzSections.get(p.juz)!.push({ pageNumber: p.pageNumber, firstSurah });
+}
+const sections = Array.from(juzSections.entries()).sort(([a], [b]) => a - b);
+
+const title = 'المصحف الشريف — تصفح كامل القرآن الكريم صفحة صفحة';
+const description = `تصفح المصحف الشريف برواية حفص عن عاصم، ${arabicDigits(MUSHAF_TOTAL_PAGES)} صفحة، مرتبة على ٣٠ جزءًا. انتقل مباشرة إلى أي صفحة أو جزء.`;
+---
+<BaseLayout title={title} description={description}>
+  <section class="border-b border-slate-800/60">
+    <div class="mx-auto max-w-5xl px-4 pt-14 pb-10 sm:px-6 md:pt-20">
+      <div class="text-center">
+        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">المصحف</p>
+        <h1 class="mt-3 text-4xl font-bold text-white md:text-5xl">تصفح المصحف الشريف</h1>
+        <p class="mx-auto mt-4 max-w-xl text-slate-300">
+          {arabicDigits(MUSHAF_TOTAL_PAGES)} صفحة · ٣٠ جزءًا · برواية حفص عن عاصم · نص عثماني
+        </p>
+
+        <div class="mx-auto mt-6 max-w-md">
+          <form id="goToPage" class="flex items-center gap-2">
+            <input
+              id="pageInput"
+              type="number"
+              min="1"
+              max={MUSHAF_TOTAL_PAGES}
+              placeholder="اكتب رقم الصفحة..."
+              class="flex-1 rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-3 text-center text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            />
+            <button type="submit" class="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400">
+              اذهب
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    {sections.map(([juz, pages]) => (
+      <div class="mb-8">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-lg font-bold text-white">
+            <a href={`/juz/${juz}/`} class="transition hover:text-emerald-400">
+              الجزء {arabicDigits(juz)}
+            </a>
+          </h2>
+          <span class="text-xs text-slate-500">{arabicDigits(pages.length)} صفحة</span>
+        </div>
+        <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10">
+          {pages.map((p) => (
+            <li>
+              <a
+                href={`/mushaf/${p.pageNumber}/`}
+                title={p.firstSurah ? `صفحة ${p.pageNumber} — ${p.firstSurah}` : `صفحة ${p.pageNumber}`}
+                class="flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/40 px-2 py-3 text-center transition hover:border-emerald-500/60 hover:bg-slate-900/80"
+              >
+                <span class="text-sm font-bold text-emerald-400 arabic-num">{arabicDigits(p.pageNumber)}</span>
+                {p.firstSurah && (
+                  <span class="mt-0.5 truncate max-w-full text-[10px] text-slate-500">{p.firstSurah}</span>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </section>
+
+  <script is:inline define:vars={{ MAX: MUSHAF_TOTAL_PAGES }}>
+    const form = document.getElementById('goToPage');
+    const input = document.getElementById('pageInput');
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const n = Math.max(1, Math.min(MAX, Number(input.value) || 0));
+      if (n) location.href = `/mushaf/${n}/`;
+    });
+  </script>
+</BaseLayout>

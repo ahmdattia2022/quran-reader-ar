@@ -29,8 +29,8 @@ body {
 /* Quran text: use AmiriQuran for authentic Uthmani script */
 .quran-text {
   font-family: 'AmiriQuran', 'Traditional Arabic', 'Amiri', 'Scheherazade New', serif;
-  font-size: clamp(1.75rem, 1.1rem + 2.2vw, 2.75rem);
-  line-height: 2.4;
+  font-size: calc(clamp(1.75rem, 1.1rem + 2.2vw, 2.75rem) * var(--font-scale, 1));
+  line-height: calc(2.4 * var(--line-height-scale, 1));
   letter-spacing: 0;
   word-spacing: 0.1em;
   text-align: center;

@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="سياسة الخصوصية — القرآن الكريم"
+  description="التزامنا بخصوصيتك: لا إعلانات، لا متابعة، لا حسابات، لا كعكات تتبّع. البيانات كلها محلية على متصفحك."
+>
+  <article class="mx-auto max-w-3xl px-4 py-14 sm:px-6 md:py-20">
+    <h1 class="text-3xl font-bold text-white md:text-4xl">سياسة الخصوصية</h1>
+    <p class="mt-2 text-sm text-slate-500">آخر تحديث: ٢٠٢٦</p>
+
+    <div class="mt-8 space-y-6 text-lg leading-loose text-slate-300">
+      <p>
+        هذا الموقع التزام حقيقي لا تسويقي: <strong class="text-white">لا نجمع عنك أي بيانات.</strong>
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">ما لا نفعله</h2>
+      <ul class="space-y-3 pr-6 list-disc marker:text-emerald-400">
+        <li>لا نستخدم <strong class="text-white">Google Analytics</strong> أو أي أداة تتبّع.</li>
+        <li>لا نضع <strong class="text-white">كعكات (cookies)</strong> على متصفحك.</li>
+        <li>لا نعرض <strong class="text-white">إعلانات</strong> من أي نوع.</li>
+        <li>لا نطلب منك <strong class="text-white">إنشاء حساب</strong> أو تسجيل دخول.</li>
+        <li>لا نرسل أي بيانات إلى خوادمنا — لأننا لا نشغّل خوادم تطبيق أصلاً.</li>
+      </ul>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">ما يحدث فعلياً</h2>
+      <p>
+        التطبيق <strong class="text-white">موقع ثابت</strong> (static site) مستضاف على Cloudflare Pages.
+        كل صفحة مُعدّة مسبقاً وقت البناء، ولا يوجد خادم تطبيق يتلقى طلباتك.
+        تفضيلاتك (آخر سورة قرأتها، اختيار القارئ، حجم الخط، المظهر) تُحفظ في
+        <strong class="text-white">localStorage</strong> في متصفحك فقط — لا تغادر جهازك.
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">الطلبات الخارجية الوحيدة</h2>
+      <p>عند استخدام الموقع، متصفحك يطلب ملفات من ثلاث جهات خارجية:</p>
+      <ul class="space-y-3 pr-6 list-disc marker:text-emerald-400">
+        <li>
+          <strong class="text-white">Cloudflare Pages</strong> — لتقديم الصفحات ذاتها.
+          Cloudflare قد تحتفظ بسجلات الطلبات لأغراض الأمان والأداء.
+        </li>
+        <li>
+          <strong class="text-white">Google Fonts / jsDelivr</strong> — لتحميل الخط العربي (Noto Sans Arabic و Amiri Quran).
+          يتم تحميل الخط مرة واحدة ثم يُخزّن في ذاكرة المتصفح.
+        </li>
+        <li>
+          <strong class="text-white">islamic.network CDN</strong> — لتحميل ملفات التلاوة الصوتية فقط حين تضغط "تشغيل".
+        </li>
+      </ul>
+      <p>
+        لا نتحكم في سياسات هذه الجهات، لكن كلٌّ منها <strong class="text-white">لا يربط الطلبات بهويتك</strong> في السياق العادي.
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">المصدر المفتوح</h2>
+      <p>
+        الكود بالكامل مفتوح المصدر على
+        <a href="https://github.com/ahmdattia2022/quran-reader-ar" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">GitHub</a>.
+        يمكنك قراءته بنفسك للتحقق من كل ما سبق. هذه ليست ادعاءات — هذا كود يمكنك التحقق منه.
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">تواصل</h2>
+      <p>
+        لو وجدت ما يبدو خرقاً لهذه السياسة، من فضلك افتح
+        <a href="https://github.com/ahmdattia2022/quran-reader-ar/issues" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">issue على GitHub</a>
+        — سنصلحه فوراً.
+      </p>
+    </div>
+  </article>
+</BaseLayout>

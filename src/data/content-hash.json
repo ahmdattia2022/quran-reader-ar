@@ -1,0 +1,10 @@
+{
+  "quran.json": {
+    "sha256": "47a45d83f3047fe3383f9cb23879c7e1554ab450bf3dd9b07f54d8873307f599",
+    "bytes": 4389454
+  },
+  "index.json": {
+    "sha256": "fbd0d6a049b100bf8b23ce2412dc249ace42d9d7e448d6bf2fee9370585c7096",
+    "bytes": 24031
+  }
+}

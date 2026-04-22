@@ -1,0 +1,40 @@
+# Cloudflare Pages applies these headers to matching paths at the edge.
+# Docs: https://developers.cloudflare.com/pages/configuration/headers/
+
+# ── Site-wide security + privacy ────────────────────────────────────────
+/*
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+# ── Immutable hashed build outputs — cache for one year ─────────────────
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# ── HTML pages — short TTL, revalidate on each visit ────────────────────
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# ── Sitemap & robots — short TTL ────────────────────────────────────────
+/sitemap-index.xml
+  Cache-Control: public, max-age=3600
+/sitemap-0.xml
+  Cache-Control: public, max-age=3600
+/robots.txt
+  Cache-Control: public, max-age=3600
+
+# ── Content integrity hash — freshness matters, one-day cache ───────────
+/quran-hash.txt
+  Cache-Control: public, max-age=86400
+  Content-Type: text/plain; charset=utf-8
+
+# ── IndexNow key file — served as plain text ────────────────────────────
+/9a8f2e5c4d1b3a7e6f0d9c8b2a1e5f4d.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=86400
+
+# ── Favicon — aggressive cache ──────────────────────────────────────────
+/favicon.svg
+  Cache-Control: public, max-age=604800

@@ -7,10 +7,12 @@
   },
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "node scripts/compute-hash.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
     "fetch:quran": "node scripts/fetch-quran.mjs",
+    "hash:quran": "node scripts/compute-hash.mjs",
     "ping:indexnow": "node scripts/ping-indexnow.mjs"
   },
   "dependencies": {

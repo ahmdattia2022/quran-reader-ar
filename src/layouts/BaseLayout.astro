@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import ReadingSettings from '../components/ReadingSettings.astro';
 
 export interface Props {
   title: string;
@@ -85,11 +86,17 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
         </span>
         <span class="text-lg">القرآن الكريم</span>
       </a>
-      <nav class="flex items-center gap-1 text-sm sm:gap-2">
-        <a href="/" class="rounded-md px-3 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400">
+      <nav class="flex items-center gap-0.5 text-sm sm:gap-1">
+        <a href="/" class="rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-3">
           السور
         </a>
-        <a href="/about" class="rounded-md px-3 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400">
+        <a href="/mushaf/" class="rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-3">
+          المصحف
+        </a>
+        <a href="/juz/" class="rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-3">
+          الأجزاء
+        </a>
+        <a href="/about/" class="hidden rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:block sm:px-3">
           عن الموقع
         </a>
       </nav>
@@ -99,6 +106,24 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
   <main class="flex-1">
     <slot />
   </main>
+
+  <!-- Floating reading settings — font size, line height, theme -->
+  <ReadingSettings />
+
+  <!-- Restore theme before first paint to avoid flash -->
+  <script is:inline>
+    (function () {
+      try {
+        var raw = localStorage.getItem('qr_reading_settings_v1');
+        if (raw) {
+          var s = JSON.parse(raw);
+          if (s.theme) document.documentElement.setAttribute('data-theme', s.theme);
+          if (s.fontScale) document.documentElement.style.setProperty('--font-scale', String(s.fontScale));
+          if (s.lineScale) document.documentElement.style.setProperty('--line-height-scale', String(s.lineScale));
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <footer class="border-t border-slate-800/60 bg-slate-950/60">
     <div class="mx-auto max-w-5xl px-4 py-8 text-center text-sm text-slate-400 sm:px-6">

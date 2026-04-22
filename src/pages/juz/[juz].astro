@@ -1,0 +1,115 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { juzBoundaries, getJuzAyahs, getJuzBoundary, JUZ_TOTAL } from '../../lib/juz.ts';
+import { arabicDigits, shortSurahName } from '../../lib/quran.ts';
+import { stripBasmala } from '../../lib/mushaf.ts';
+
+export async function getStaticPaths() {
+  return juzBoundaries.map((b) => ({
+    params: { juz: String(b.juz) },
+    props: { juz: b.juz },
+  }));
+}
+
+interface Props { juz: number; }
+
+const { juz } = Astro.props;
+const boundary = getJuzBoundary(juz)!;
+const sections = getJuzAyahs(juz);
+
+const prev = juz > 1 ? juz - 1 : null;
+const next = juz < JUZ_TOTAL ? juz + 1 : null;
+
+const BASMALA = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
+
+const title = `الجزء ${arabicDigits(juz)} من القرآن الكريم — قراءة كاملة`;
+const description = `الجزء ${arabicDigits(juz)} من القرآن الكريم، من ${shortSurahName(boundary.startSurahName)} آية ${arabicDigits(boundary.startAyah)} إلى ${shortSurahName(boundary.endSurahName)} آية ${arabicDigits(boundary.endAyah)}.`;
+---
+<BaseLayout title={title} description={description} ogType="article">
+  <section class="relative border-b border-slate-800/60">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-950/30 via-slate-950 to-slate-950"></div>
+
+    <div class="mx-auto max-w-4xl px-4 pt-10 pb-6 sm:px-6 md:pt-14">
+      <nav aria-label="breadcrumb" class="mb-4 text-sm">
+        <ol class="flex flex-wrap items-center gap-2 text-slate-400">
+          <li><a href="/" class="transition hover:text-emerald-400">السور</a></li>
+          <li class="text-slate-600">·</li>
+          <li><a href="/juz/" class="transition hover:text-emerald-400">الأجزاء</a></li>
+          <li class="text-slate-600">·</li>
+          <li class="text-slate-300">الجزء {arabicDigits(juz)}</li>
+        </ol>
+      </nav>
+
+      <div class="text-center">
+        <h1 class="text-3xl font-bold text-white md:text-5xl">الجزء {arabicDigits(juz)}</h1>
+        <p class="mt-3 text-sm text-slate-400">
+          من <a href={`/surah/${boundary.startSurah}/?ayah=${boundary.startAyah}`} class="text-emerald-400 hover:underline">{shortSurahName(boundary.startSurahName)} آية {arabicDigits(boundary.startAyah)}</a>
+          {' '}إلى{' '}
+          <a href={`/surah/${boundary.endSurah}/?ayah=${boundary.endAyah}`} class="text-emerald-400 hover:underline">{shortSurahName(boundary.endSurahName)} آية {arabicDigits(boundary.endAyah)}</a>
+        </p>
+        <p class="mt-2 text-xs text-slate-500">صفحات {arabicDigits(boundary.startPage)}–{arabicDigits(boundary.endPage)} · {arabicDigits(boundary.ayahCount)} آية</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-14">
+    {sections.map((section) => {
+      const firstAyahInList = section.ayahs[0];
+      // Show basmala header when this section starts with ayah 1 of a surah (other than 1 and 9).
+      const showBasmala = firstAyahInList.numberInSurah === 1
+        && section.surahNumber !== 1
+        && section.surahNumber !== 9;
+      const display = section.ayahs.map((a, i) => ({
+        ...a,
+        text: i === 0 && showBasmala ? stripBasmala(a.text) : a.text,
+      }));
+      return (
+        <article class="mb-10 rounded-2xl border border-slate-800 bg-slate-900/30 p-5 md:p-8">
+          <header class="mb-5 flex items-baseline justify-between">
+            <h2 class="text-xl font-bold text-white">
+              <a href={`/surah/${section.surahNumber}/`} class="hover:text-emerald-400">
+                سورة {shortSurahName(section.surahName)}
+              </a>
+            </h2>
+            <span class="text-xs text-slate-500">{section.surahEnglishName}</span>
+          </header>
+
+          {showBasmala && (
+            <p class="quran-text mb-6 text-center text-emerald-300">{BASMALA}</p>
+          )}
+
+          <div class="space-y-4">
+            {display.map((a) => (
+              <p class="quran-text text-slate-50" id={`ayah-${section.surahNumber}-${a.numberInSurah}`}>
+                {a.text}
+                <span class="ayah-number">﴿{arabicDigits(a.numberInSurah)}﴾</span>
+              </p>
+            ))}
+          </div>
+        </article>
+      );
+    })}
+
+    <!-- Prev/Next juz -->
+    <nav class="mt-10 grid gap-3 sm:grid-cols-2">
+      {prev ? (
+        <a href={`/juz/${prev}/`} class="group flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60">
+          <svg class="h-5 w-5 text-slate-500 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          <div class="flex-1 text-right">
+            <p class="text-xs text-slate-500">الجزء السابق</p>
+            <p class="font-semibold text-white">الجزء {arabicDigits(prev)}</p>
+          </div>
+        </a>
+      ) : <div></div>}
+      {next && (
+        <a href={`/juz/${next}/`} class="group flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60">
+          <div class="flex-1">
+            <p class="text-xs text-slate-500">الجزء التالي</p>
+            <p class="font-semibold text-white">الجزء {arabicDigits(next)}</p>
+          </div>
+          <svg class="h-5 w-5 rotate-180 text-slate-500 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+      )}
+    </nav>
+  </section>
+</BaseLayout>

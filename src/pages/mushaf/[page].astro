@@ -1,0 +1,139 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MushafPageView from '../../components/MushafPageView.astro';
+import { mushafPages, MUSHAF_TOTAL_PAGES, type MushafPage } from '../../lib/mushaf.ts';
+import { arabicDigits, shortSurahName } from '../../lib/quran.ts';
+
+export async function getStaticPaths() {
+  return mushafPages.map((p) => ({
+    params: { page: String(p.pageNumber) },
+    props: { page: p },
+  }));
+}
+
+interface Props {
+  page: MushafPage;
+}
+
+const { page } = Astro.props;
+const prev = page.pageNumber > 1 ? page.pageNumber - 1 : null;
+const next = page.pageNumber < MUSHAF_TOTAL_PAGES ? page.pageNumber + 1 : null;
+
+const firstFrag = page.fragments[0];
+const firstSurah = firstFrag ? shortSurahName(firstFrag.surahName) : '';
+
+const title = `صفحة ${arabicDigits(page.pageNumber)} من المصحف — ${firstSurah} | القرآن الكريم`;
+const description = `قراءة صفحة رقم ${arabicDigits(page.pageNumber)} من المصحف الشريف برواية حفص عن عاصم. جزء ${arabicDigits(page.juz)}، تبدأ من سورة ${firstSurah}.`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: `صفحة ${page.pageNumber} من المصحف`,
+  inLanguage: 'ar',
+  articleSection: 'القرآن الكريم — مصحف',
+  description,
+  url: new URL(Astro.url.pathname, Astro.site).toString(),
+  isPartOf: { '@type': 'Book', name: 'القرآن الكريم', inLanguage: 'ar' },
+};
+---
+<BaseLayout
+  title={title}
+  description={description}
+  ogType="article"
+  jsonLd={jsonLd}
+>
+  <!-- Header strip -->
+  <section class="relative border-b border-slate-800/60">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-950/30 via-slate-950 to-slate-950"></div>
+
+    <div class="mx-auto max-w-4xl px-4 pt-10 pb-6 sm:px-6 md:pt-14">
+      <nav aria-label="breadcrumb" class="mb-4 text-sm">
+        <ol class="flex flex-wrap items-center gap-2 text-slate-400">
+          <li><a href="/" class="transition hover:text-emerald-400">السور</a></li>
+          <li class="text-slate-600">·</li>
+          <li><a href="/mushaf/" class="transition hover:text-emerald-400">المصحف</a></li>
+          <li class="text-slate-600">·</li>
+          <li class="text-slate-300">صفحة {arabicDigits(page.pageNumber)}</li>
+        </ol>
+      </nav>
+
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span class="rounded-full bg-slate-800 px-3 py-1">صفحة {arabicDigits(page.pageNumber)} / {arabicDigits(MUSHAF_TOTAL_PAGES)}</span>
+            <span class="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-300">جزء {arabicDigits(page.juz)}</span>
+          </div>
+          <h1 class="mt-3 text-2xl font-bold text-white md:text-3xl">
+            {firstSurah ? `سورة ${firstSurah}` : `صفحة ${arabicDigits(page.pageNumber)}`}
+          </h1>
+        </div>
+
+        <!-- Page jump input -->
+        <form id="pageJumpForm" class="flex items-center gap-2">
+          <label for="pageJumpInput" class="sr-only">الانتقال إلى صفحة</label>
+          <input
+            id="pageJumpInput"
+            type="number"
+            min="1"
+            max={MUSHAF_TOTAL_PAGES}
+            placeholder="رقم الصفحة"
+            class="w-28 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-center text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          />
+          <button type="submit" class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400">
+            اذهب
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- The mushaf page itself -->
+  <section class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-14">
+    <MushafPageView page={page} />
+
+    <!-- Prev/Next -->
+    <nav class="mt-10 grid gap-3 sm:grid-cols-2">
+      {prev ? (
+        <a href={`/mushaf/${prev}/`} class="group flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60">
+          <svg class="h-5 w-5 text-slate-500 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          <div class="flex-1 text-right">
+            <p class="text-xs text-slate-500">الصفحة السابقة</p>
+            <p class="font-semibold text-white">صفحة {arabicDigits(prev)}</p>
+          </div>
+        </a>
+      ) : <div></div>}
+      {next && (
+        <a href={`/mushaf/${next}/`} class="group flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60">
+          <div class="flex-1">
+            <p class="text-xs text-slate-500">الصفحة التالية</p>
+            <p class="font-semibold text-white">صفحة {arabicDigits(next)}</p>
+          </div>
+          <svg class="h-5 w-5 rotate-180 text-slate-500 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+      )}
+    </nav>
+  </section>
+
+  <script is:inline define:vars={{ MAX: MUSHAF_TOTAL_PAGES }}>
+    (function () {
+      const form = document.getElementById('pageJumpForm');
+      const input = document.getElementById('pageJumpInput');
+      if (!form || !input) return;
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const n = Math.max(1, Math.min(MAX, Number(input.value) || 0));
+        if (n) location.href = `/mushaf/${n}/`;
+      });
+
+      // Left/right arrow keys for quick page turn (respect RTL reading direction)
+      document.addEventListener('keydown', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+        const path = location.pathname.match(/\/mushaf\/(\d+)/);
+        if (!path) return;
+        const curr = Number(path[1]);
+        if (e.key === 'ArrowLeft' && curr < MAX) location.href = `/mushaf/${curr + 1}/`;
+        if (e.key === 'ArrowRight' && curr > 1) location.href = `/mushaf/${curr - 1}/`;
+      });
+    })();
+  </script>
+</BaseLayout>

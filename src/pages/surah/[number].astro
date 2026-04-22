@@ -392,6 +392,21 @@ const jsonLd = {
         });
       });
 
+      // URL-as-state: if ?ayah=N is present, scroll + highlight that ayah.
+      (function () {
+        const params = new URLSearchParams(location.search);
+        const target = Number(params.get('ayah'));
+        if (!target || target < 1 || target > totalAyahs) return;
+        const el = document.getElementById(`ayah-${target}`);
+        if (!el) return;
+        // Defer to next frame so layout is stable
+        requestAnimationFrame(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ayah-active');
+          setTimeout(() => el.classList.remove('ayah-active'), 3500);
+        });
+      })();
+
       // Tafsir toggle
       let tafsirVisible = localStorage.getItem('qr_tafsir') === 'true';
       function applyTafsir() {
