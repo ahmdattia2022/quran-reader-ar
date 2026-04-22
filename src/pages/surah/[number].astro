@@ -1269,6 +1269,18 @@ const jsonLd = {
         // Exposed so the audio 'ended' handler + ?ayah= URL param can
         // trigger batched loading when advancing past the loaded set.
         loadMoreAyahs = loadMore;
+
+        // Scroll-triggered auto-pagination: pre-fire loadMore() when the
+        // button is within 400px of the viewport so reading feels seamless.
+        // Button stays visible as a manual fallback + progress indicator.
+        if ('IntersectionObserver' in window) {
+          const scrollIO = new IntersectionObserver((entries) => {
+            if (entries.some((e) => e.isIntersecting) && !loadMoreBtn.disabled) {
+              loadMore();
+            }
+          }, { rootMargin: '400px 0px', threshold: 0 });
+          scrollIO.observe(loadMoreWrap);
+        }
       }
     })();
   </script>

@@ -46,35 +46,50 @@ const description = `تصفح المصحف الشريف برواية حفص عن
   </section>
 
   <section class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-    {sections.map(([juz, pages]) => (
-      <div class="mb-8">
-        <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-lg font-bold text-white">
-            <a href={`/juz/${juz}/`} class="transition hover:text-emerald-400">
-              الجزء {arabicDigits(juz)}
-            </a>
-          </h2>
-          <span class="text-xs text-slate-500">{arabicDigits(pages.length)} صفحة</span>
-        </div>
-        <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10">
-          {pages.map((p) => (
-            <li>
-              <a
-                href={`/mushaf/${p.pageNumber}/`}
-                title={p.firstSurah ? `صفحة ${p.pageNumber} — ${p.firstSurah}` : `صفحة ${p.pageNumber}`}
-                class="flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/40 px-2 py-3 text-center transition hover:border-emerald-500/60 hover:bg-slate-900/80"
-              >
-                <span class="text-sm font-bold text-emerald-400 arabic-num">{arabicDigits(p.pageNumber)}</span>
-                {p.firstSurah && (
-                  <span class="mt-0.5 truncate max-w-full text-[10px] text-slate-500">{p.firstSurah}</span>
-                )}
+    <div id="juz-sections">
+      {sections.slice(0, 5).map(([juz, pages]) => (
+        <div class="mb-8 juz-section">
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-white">
+              <a href={`/juz/${juz}/`} class="transition hover:text-emerald-400">
+                الجزء {arabicDigits(juz)}
               </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    ))}
+            </h2>
+            <span class="text-xs text-slate-500">{arabicDigits(pages.length)} صفحة</span>
+          </div>
+          <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10">
+            {pages.map((p) => (
+              <li>
+                <a
+                  href={`/mushaf/${p.pageNumber}/`}
+                  title={p.firstSurah ? `صفحة ${p.pageNumber} — ${p.firstSurah}` : `صفحة ${p.pageNumber}`}
+                  class="flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/40 px-2 py-3 text-center transition hover:border-emerald-500/60 hover:bg-slate-900/80"
+                >
+                  <span class="text-sm font-bold text-emerald-400 arabic-num">{arabicDigits(p.pageNumber)}</span>
+                  {p.firstSurah && (
+                    <span class="mt-0.5 truncate max-w-full text-[10px] text-slate-500">{p.firstSurah}</span>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <!-- Sentinel for scroll-triggered load of remaining juz sections -->
+    <div id="mushaf-sentinel" class="py-6 text-center text-xs text-slate-500" aria-live="polite">
+      <span id="mushaf-sentinel-label">جارٍ تحميل باقي الأجزاء…</span>
+    </div>
   </section>
+
+  <!-- Remaining juz sections (6-30) serialized for scroll-load -->
+  <script type="application/json" id="mushaf-rest-data" set:html={JSON.stringify(
+    sections.slice(5).map(([juz, pages]) => ({
+      j: juz,
+      p: pages.map((p) => ({ n: p.pageNumber, s: p.firstSurah })),
+    }))
+  )}></script>
 
   <script is:inline define:vars={{ MAX: MUSHAF_TOTAL_PAGES }}>
     const form = document.getElementById('goToPage');
@@ -84,5 +99,65 @@ const description = `تصفح المصحف الشريف برواية حفص عن
       const n = Math.max(1, Math.min(MAX, Number(input.value) || 0));
       if (n) location.href = `/mushaf/${n}/`;
     });
+
+    // Scroll-triggered load of remaining juz sections
+    (function () {
+      const container = document.getElementById('juz-sections');
+      const sentinel = document.getElementById('mushaf-sentinel');
+      const sentinelLabel = document.getElementById('mushaf-sentinel-label');
+      const restEl = document.getElementById('mushaf-rest-data');
+      if (!container || !sentinel || !restEl) return;
+
+      let rest = [];
+      try { rest = JSON.parse(restEl.textContent || '[]'); } catch {}
+
+      const arDigits = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
+
+      function escHtml(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      function renderJuz(group) {
+        const pagesHtml = group.p.map((p) => {
+          const surah = escHtml(p.s || '');
+          const title = p.s ? `صفحة ${p.n} — ${surah}` : `صفحة ${p.n}`;
+          return `
+            <li>
+              <a href="/mushaf/${p.n}/" title="${title}" class="flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/40 px-2 py-3 text-center transition hover:border-emerald-500/60 hover:bg-slate-900/80">
+                <span class="text-sm font-bold text-emerald-400 arabic-num">${arDigits(p.n)}</span>
+                ${surah ? `<span class="mt-0.5 truncate max-w-full text-[10px] text-slate-500">${surah}</span>` : ''}
+              </a>
+            </li>`;
+        }).join('');
+        const wrap = document.createElement('div');
+        wrap.className = 'mb-8 juz-section';
+        wrap.innerHTML = `
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-white">
+              <a href="/juz/${group.j}/" class="transition hover:text-emerald-400">الجزء ${arDigits(group.j)}</a>
+            </h2>
+            <span class="text-xs text-slate-500">${arDigits(group.p.length)} صفحة</span>
+          </div>
+          <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10">${pagesHtml}</ul>`;
+        return wrap;
+      }
+
+      function loadNext(count) {
+        const next = rest.splice(0, count);
+        const frag = document.createDocumentFragment();
+        for (const g of next) frag.appendChild(renderJuz(g));
+        container.appendChild(frag);
+        if (rest.length === 0) sentinel.remove();
+      }
+
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          if (entries.some((e) => e.isIntersecting) && rest.length) loadNext(5);
+        }, { rootMargin: '600px 0px' });
+        io.observe(sentinel);
+      } else {
+        while (rest.length) loadNext(5);
+      }
+    })();
   </script>
 </BaseLayout>

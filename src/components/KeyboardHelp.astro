@@ -2,10 +2,16 @@
 // Keyboard shortcuts help modal. Opens on `?` or `Shift+/`.
 // Triggered globally; lists all shortcuts understood across the app.
 ---
+<!--
+  Stacks ABOVE the reading-settings cog (bottom-4 left-4). Using
+  bottom-[4.5rem] gives ~72px clearance which comfortably sits above a
+  44px button + 12px gap. Desktop breakpoint bumps to sm:bottom-[5.5rem]
+  to match the larger cog.
+-->
 <button
   id="kbd-help-trigger"
   type="button"
-  class="fixed bottom-4 left-4 z-40 hidden h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-slate-900/90 text-slate-300 shadow-lg backdrop-blur transition hover:border-emerald-500 hover:text-emerald-400 sm:flex"
+  class="fixed bottom-[4.5rem] left-4 z-40 hidden h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-slate-900/90 text-slate-300 shadow-lg backdrop-blur transition hover:border-emerald-500 hover:text-emerald-400 sm:bottom-[5.5rem] sm:left-6 lg:flex"
   aria-label="اختصارات لوحة المفاتيح"
   title="اختصارات (؟)"
 >
@@ -81,12 +87,7 @@
     const trigger = document.getElementById('kbd-help-trigger');
     if (!modal) return;
 
-    // Show the floating trigger button only after we know the device has
-    // a physical keyboard-ish form factor (lg breakpoint is a reasonable proxy)
-    if (window.matchMedia('(min-width: 1024px)').matches) {
-      trigger.classList.remove('hidden');
-      trigger.classList.add('flex');
-    }
+    // Visibility is controlled by CSS (`lg:flex` breakpoint) — no JS needed.
 
     function open() {
       modal.classList.remove('hidden');

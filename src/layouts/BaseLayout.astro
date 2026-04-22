@@ -93,47 +93,143 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
 </head>
 <body class="flex min-h-dvh flex-col">
   <header class="sticky top-0 z-40 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md">
-    <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
-      <a href="/" class="flex items-center gap-2.5 font-bold text-white">
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30">
-          <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-6">
+      <a href="/" class="flex min-w-0 items-center gap-2 font-bold text-white sm:gap-2.5">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 sm:h-9 sm:w-9">
+          <svg class="h-4 w-4 text-white sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </span>
-        <span class="text-lg">القرآن الكريم</span>
+        <span class="truncate text-base sm:text-lg">القرآن الكريم</span>
       </a>
-      <nav class="flex items-center gap-0.5 text-sm sm:gap-1">
-        <a href="/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">
-          السور
+
+      <!-- Desktop / tablet inline nav (sm+) -->
+      <nav class="hidden items-center gap-0.5 text-sm sm:flex sm:gap-1">
+        <a href="/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">السور</a>
+        <a href="/mushaf/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">المصحف</a>
+        <a href="/juz/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">الأجزاء</a>
+        <a href="/duaa/" class="hidden rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 md:inline-block md:px-2.5">الأدعية</a>
+        <a href="/khatm/" class="hidden rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 md:inline-block md:px-2.5">الختمة</a>
+        <a href="/awqat/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">المواقيت</a>
+        <a href="/search/" class="flex h-9 w-9 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="بحث">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
         </a>
-        <a href="/mushaf/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">
-          المصحف
-        </a>
-        <a href="/juz/" class="hidden rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:inline-block sm:px-2.5">
-          الأجزاء
-        </a>
-        <a href="/duaa/" class="hidden rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 md:inline-block md:px-2.5">
-          الأدعية
-        </a>
-        <a href="/khatm/" class="hidden rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 md:inline-block md:px-2.5">
-          الختمة
-        </a>
-        <a href="/awqat/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">
-          المواقيت
-        </a>
-        <a href="/search/" class="rounded-md p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="بحث">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
-          </svg>
-        </a>
-        <a href="/bookmarks/" class="rounded-md p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="الإشارات المرجعية">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
+        <a href="/bookmarks/" class="flex h-9 w-9 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="الإشارات المرجعية">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
         </a>
       </nav>
+
+      <!-- Mobile compact nav (< sm): icons + hamburger -->
+      <div class="flex items-center gap-0.5 sm:hidden">
+        <a href="/search/" class="flex h-10 w-10 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="بحث">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        </a>
+        <a href="/bookmarks/" class="flex h-10 w-10 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="الإشارات المرجعية">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </a>
+        <button
+          id="nav-menu-btn"
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400"
+          aria-label="فتح القائمة"
+          aria-expanded="false"
+          aria-controls="nav-drawer"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
+
+  <!-- Mobile drawer (slides in from the start side — right for RTL) -->
+  <div
+    id="nav-drawer"
+    class="fixed inset-0 z-50 hidden sm:hidden"
+    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+    aria-label="القائمة الرئيسية"
+  >
+    <div id="nav-drawer-backdrop" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+    <aside
+      id="nav-drawer-panel"
+      class="absolute inset-y-0 left-0 flex h-full w-72 max-w-[82vw] flex-col overflow-y-auto border-r border-slate-800 bg-slate-900 shadow-2xl"
+    >
+      <div class="flex items-center justify-between gap-3 border-b border-slate-800 px-5 py-4">
+        <div class="flex items-center gap-2 font-bold text-white">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600">
+            <svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+          <span class="text-base">القرآن الكريم</span>
+        </div>
+        <button
+          id="nav-drawer-close"
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-800 hover:text-white"
+          aria-label="إغلاق القائمة"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="flex-1 p-3">
+        <ul class="space-y-1">
+          <li><a href="/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">فهرس السور</a></li>
+          <li><a href="/mushaf/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">المصحف</a></li>
+          <li><a href="/juz/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">الأجزاء</a></li>
+          <li><a href="/duaa/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">أدعية من القرآن</a></li>
+          <li><a href="/khatm/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">خطة الختمة</a></li>
+          <li><a href="/awqat/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">مواقيت الصلاة والقبلة</a></li>
+          <li><a href="/search/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">البحث في القرآن</a></li>
+          <li><a href="/bookmarks/" class="block rounded-lg px-4 py-3 text-base text-slate-200 transition hover:bg-slate-800 hover:text-emerald-300">الإشارات المرجعية</a></li>
+          <li class="pt-2"><div class="my-2 border-t border-slate-800"></div></li>
+          <li><a href="/about/" class="block rounded-lg px-4 py-2.5 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-emerald-300">عن المصحف</a></li>
+          <li><a href="/privacy/" class="block rounded-lg px-4 py-2.5 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-emerald-300">سياسة الخصوصية</a></li>
+        </ul>
+      </nav>
+    </aside>
+  </div>
+
+  <script is:inline>
+    (function () {
+      const drawer = document.getElementById('nav-drawer');
+      const openBtn = document.getElementById('nav-menu-btn');
+      const closeBtn = document.getElementById('nav-drawer-close');
+      const backdrop = document.getElementById('nav-drawer-backdrop');
+      if (!drawer || !openBtn) return;
+
+      function openDrawer() {
+        drawer.classList.remove('hidden');
+        drawer.setAttribute('aria-hidden', 'false');
+        openBtn.setAttribute('aria-expanded', 'true');
+        document.documentElement.style.overflow = 'hidden';
+      }
+      function closeDrawer() {
+        drawer.classList.add('hidden');
+        drawer.setAttribute('aria-hidden', 'true');
+        openBtn.setAttribute('aria-expanded', 'false');
+        document.documentElement.style.overflow = '';
+      }
+
+      openBtn.addEventListener('click', openDrawer);
+      closeBtn?.addEventListener('click', closeDrawer);
+      backdrop?.addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !drawer.classList.contains('hidden')) closeDrawer();
+      });
+      // Close drawer if viewport grows past sm (user rotated or resized)
+      const mq = window.matchMedia('(min-width: 640px)');
+      (mq.addEventListener || mq.addListener).call(mq, 'change', (e) => {
+        if (e.matches && !drawer.classList.contains('hidden')) closeDrawer();
+      });
+    })();
+  </script>
 
   <main class="flex-1">
     <slot />

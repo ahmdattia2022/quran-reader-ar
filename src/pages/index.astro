@@ -242,7 +242,7 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
       id="surah-list"
       class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
     >
-      {surahIndex.map((s) => (
+      {surahIndex.slice(0, 40).map((s) => (
         <li
           data-surah-name={shortSurahName(s.name)}
           data-surah-english={s.englishName.toLowerCase()}
@@ -283,19 +283,100 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
       ))}
     </ul>
 
+    <!-- Sentinel + status for scroll-triggered loading of remaining surahs -->
+    <div id="surah-sentinel" class="py-6 text-center text-xs text-slate-500" aria-live="polite">
+      <span id="sentinel-label">جارٍ تحميل باقي السور…</span>
+    </div>
+
     <p id="no-results" class="hidden py-8 text-center text-slate-400">
       لا توجد نتائج مطابقة
     </p>
   </section>
+
+  <!-- Remaining surah metadata (surahs 41-114) inlined for fast scroll-load -->
+  <script type="application/json" id="surah-rest-data" set:html={JSON.stringify(
+    surahIndex.slice(40).map((s) => ({
+      n: s.number,
+      name: shortSurahName(s.name),
+      en: s.englishName,
+      rev: s.revelationType,
+      ayahs: s.numberOfAyahs,
+    }))
+  )}></script>
 
   <script is:inline>
     (function () {
       const input = document.getElementById('surah-search');
       const list = document.getElementById('surah-list');
       const empty = document.getElementById('no-results');
+      const sentinel = document.getElementById('surah-sentinel');
+      const sentinelLabel = document.getElementById('sentinel-label');
+      const restDataEl = document.getElementById('surah-rest-data');
       if (!input || !list) return;
 
-      const items = Array.from(list.querySelectorAll('[data-surah-name]'));
+      const arDigits = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
+      const revAr = (r) => (r === 'Meccan' ? 'مكية' : 'مدنية');
+
+      let items = Array.from(list.querySelectorAll('[data-surah-name]'));
+
+      // Render additional surahs from inline JSON in batches of 30.
+      let restPool = [];
+      try { restPool = JSON.parse(restDataEl.textContent || '[]'); } catch {}
+
+      function renderSurahLi(s) {
+        const li = document.createElement('li');
+        li.setAttribute('data-surah-name', s.name);
+        li.setAttribute('data-surah-english', String(s.en || '').toLowerCase());
+        li.setAttribute('data-surah-number', String(s.n));
+        const revClass = s.rev === 'Meccan' ? 'text-amber-400' : 'text-sky-400';
+        li.innerHTML = `
+          <a href="/surah/${s.n}" class="group relative flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-3.5 transition hover:border-emerald-500/60 hover:bg-slate-900/80">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center">
+              <svg class="absolute h-11 w-11 text-emerald-500/30 transition group-hover:text-emerald-500/60" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 2 L40 12 L40 32 L22 42 L4 32 L4 12 Z"/></svg>
+              <span class="relative text-sm font-bold text-emerald-400 arabic-num">${arDigits(s.n)}</span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline gap-2">
+                <h3 class="truncate font-semibold text-white text-lg">${s.name}</h3>
+                <span class="text-xs text-slate-500">${s.en || ''}</span>
+              </div>
+              <p class="mt-0.5 text-xs text-slate-400">
+                <span class="${revClass}">${revAr(s.rev)}</span>
+                <span class="mx-1.5 text-slate-700">·</span>
+                <span>${arDigits(s.ayahs)} آية</span>
+              </p>
+            </div>
+            <svg class="h-4 w-4 shrink-0 rotate-180 text-slate-600 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </a>`;
+        return li;
+      }
+
+      function loadNextBatch(n) {
+        const take = restPool.splice(0, n);
+        const frag = document.createDocumentFragment();
+        for (const s of take) frag.appendChild(renderSurahLi(s));
+        list.appendChild(frag);
+        items = Array.from(list.querySelectorAll('[data-surah-name]'));
+        if (restPool.length === 0 && sentinel) sentinel.remove();
+        else if (sentinelLabel) sentinelLabel.textContent = 'جارٍ تحميل باقي السور…';
+      }
+
+      function loadAllRemaining() {
+        while (restPool.length) loadNextBatch(30);
+      }
+
+      // Scroll-triggered auto-load
+      if ('IntersectionObserver' in window && sentinel) {
+        const io = new IntersectionObserver((entries) => {
+          if (entries.some((e) => e.isIntersecting) && restPool.length) {
+            loadNextBatch(30);
+          }
+        }, { rootMargin: '600px 0px' });
+        io.observe(sentinel);
+      } else {
+        // No IO: load everything immediately (old browsers)
+        loadAllRemaining();
+      }
 
       function normalize(s) {
         return String(s || '')
@@ -308,7 +389,11 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
       }
 
       input.addEventListener('input', (e) => {
-        const q = normalize(e.target.value);
+        const raw = e.target.value;
+        // If user is searching, materialise the rest so the filter can
+        // hit every surah (72 × 500 bytes of DOM — still trivial).
+        if (raw && restPool.length) loadAllRemaining();
+        const q = normalize(raw);
         let visible = 0;
         for (const li of items) {
           const name = normalize(li.dataset.surahName);
