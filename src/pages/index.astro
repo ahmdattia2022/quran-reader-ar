@@ -363,35 +363,22 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
 
       function loadAllRemaining() {
         while (restPool.length) loadNextBatch(30);
+        if (sentinel) sentinel.remove();
       }
 
-      // Pagination driver: render batches while the sentinel is near the
-      // viewport bottom. Re-runs itself after each batch so a wide viewport
-      // (or fast scroll) drains multiple batches in one pass. Triggered on
-      // scroll/resize/initial load.
-      let draining = false;
-      function drainWhileNear() {
-        if (draining || restPool.length === 0 || !sentinel) return;
-        const rect = sentinel.getBoundingClientRect();
-        const vh = window.innerHeight || document.documentElement.clientHeight;
-        if (rect.top > vh + 600) return; // not near yet
-        draining = true;
-        loadNextBatch(30);
-        draining = false;
-        // Keep going if still near; next frame so layout updates
-        if (restPool.length) requestAnimationFrame(drainWhileNear);
+      // 74 surahs × ~1.5 KB DOM each ≈ 111 KB — render them all right
+      // after first paint. Keeps the HTML-shipped initial payload small
+      // (won the bandwidth fight), but guarantees users see the full
+      // list without any scroll-detection fragility. Chunk across two
+      // frames so the initial paint lands fast.
+      if (restPool.length === 0) {
+        if (sentinel) sentinel.remove();
+      } else {
+        requestAnimationFrame(() => {
+          loadNextBatch(40);
+          requestAnimationFrame(loadAllRemaining);
+        });
       }
-
-      let ticking = false;
-      function scheduleDrain() {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(() => { ticking = false; drainWhileNear(); });
-      }
-      window.addEventListener('scroll', scheduleDrain, { passive: true });
-      window.addEventListener('resize', scheduleDrain, { passive: true });
-      // Initial check — handles "sentinel already in view" (small lists / tall viewports)
-      setTimeout(drainWhileNear, 50);
 
       function normalize(s) {
         return String(s || '')

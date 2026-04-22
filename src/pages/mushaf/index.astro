@@ -147,31 +147,23 @@ const description = `تصفح المصحف الشريف برواية حفص عن
         const frag = document.createDocumentFragment();
         for (const g of next) frag.appendChild(renderJuz(g));
         container.appendChild(frag);
-        if (rest.length === 0) sentinel.remove();
+        if (rest.length === 0 && sentinel) sentinel.remove();
+      }
+      function loadAll() {
+        while (rest.length) loadNext(5);
       }
 
-      // Drain-while-near: reliably fires on scroll + initial load even when
-      // the sentinel is already within the pre-load margin after a batch.
-      let draining = false;
-      function drainWhileNear() {
-        if (draining || rest.length === 0 || !sentinel) return;
-        const rect = sentinel.getBoundingClientRect();
-        const vh = window.innerHeight || document.documentElement.clientHeight;
-        if (rect.top > vh + 600) return;
-        draining = true;
-        loadNext(5);
-        draining = false;
-        if (rest.length) requestAnimationFrame(drainWhileNear);
+      // Render remaining juz sections right after first paint. Initial HTML
+      // stays small (107 KB vs 300 KB), but the full index materializes
+      // without relying on scroll detection that proved flaky for users.
+      if (rest.length === 0) {
+        if (sentinel) sentinel.remove();
+      } else {
+        requestAnimationFrame(() => {
+          loadNext(5);
+          requestAnimationFrame(loadAll);
+        });
       }
-      let ticking = false;
-      function scheduleDrain() {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(() => { ticking = false; drainWhileNear(); });
-      }
-      window.addEventListener('scroll', scheduleDrain, { passive: true });
-      window.addEventListener('resize', scheduleDrain, { passive: true });
-      setTimeout(drainWhileNear, 50);
     })();
   </script>
 </BaseLayout>
