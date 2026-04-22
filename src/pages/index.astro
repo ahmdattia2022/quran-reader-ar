@@ -221,26 +221,37 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
         empty.classList.toggle('hidden', visible > 0);
       });
 
-      // Continue reading card
-      try {
-        const raw = localStorage.getItem('qr_last_read');
-        if (raw) {
-          const lr = JSON.parse(raw);
-          if (lr && lr.surah) {
-            const card = document.getElementById('continue-reading');
-            const label = document.getElementById('cr-label');
-            if (card && label) {
-              const surahItem = items.find((x) => Number(x.dataset.surahNumber) === lr.surah);
-              const name = surahItem?.dataset.surahName || ('سورة ' + lr.surah);
-              const ayah = lr.ayah ? ' · الآية ' + lr.ayah : '';
-              label.textContent = name + ayah;
-              card.setAttribute('href', '/surah/' + lr.surah + (lr.ayah ? '/?ayah=' + lr.ayah : ''));
-              card.classList.remove('hidden');
-              card.classList.add('flex');
-            }
+      // Continue-reading card — renders initially from localStorage,
+      // AND re-renders if sync pulls a newer last_read from cloud
+      // (e.g., user switched devices and just signed in).
+      function renderContinueReading() {
+        try {
+          const raw = localStorage.getItem('qr_last_read');
+          const card = document.getElementById('continue-reading');
+          const label = document.getElementById('cr-label');
+          if (!card || !label) return;
+          if (!raw) {
+            card.classList.add('hidden'); card.classList.remove('flex');
+            return;
           }
-        }
-      } catch {}
+          const lr = JSON.parse(raw);
+          if (!lr || !lr.surah) {
+            card.classList.add('hidden'); card.classList.remove('flex');
+            return;
+          }
+          const surahItem = items.find((x) => Number(x.dataset.surahNumber) === lr.surah);
+          const name = surahItem?.dataset.surahName || ('سورة ' + lr.surah);
+          const ayah = lr.ayah ? ' · الآية ' + lr.ayah : '';
+          label.textContent = name + ayah;
+          card.setAttribute('href', '/surah/' + lr.surah + (lr.ayah ? '/?ayah=' + lr.ayah : ''));
+          card.classList.remove('hidden');
+          card.classList.add('flex');
+        } catch {}
+      }
+      renderContinueReading();
+      window.addEventListener('qr:data-cloud-pulled', (e) => {
+        if (e && e.detail && e.detail.key === 'last_read') renderContinueReading();
+      });
     })();
   </script>
 </BaseLayout>

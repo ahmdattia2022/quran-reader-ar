@@ -90,11 +90,16 @@ create trigger enforce_user_data_caps_trigger
 --
 -- When a user signs up, create an empty user_data row. This way the
 -- client can always UPSERT instead of INSERT-or-UPDATE logic.
+--
+-- `search_path` is pinned to defeat search-path-based privilege
+-- escalation in SECURITY DEFINER functions (a known Postgres hardening
+-- step that Supabase's linter specifically checks for).
 
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 begin
   insert into public.user_data (user_id) values (new.id)
@@ -116,8 +121,17 @@ insert into public.user_data (user_id)
 select id from auth.users
 on conflict (user_id) do nothing;
 
+-- 6) Tell PostgREST to reload its schema cache -------------------------
+-- Without this, the REST endpoint can 404 for up to ~5 minutes after a
+-- DDL change because PGRST caches the schema shape on startup.
+
+notify pgrst, 'reload schema';
+
 -- =================================================================
 -- Verification queries (run after setup to confirm):
 -- =================================================================
 --   select * from public.user_data limit 1;
 --   select polname, polcmd from pg_policy where polrelid = 'public.user_data'::regclass;
+--   select proname, prosecdef, proconfig from pg_proc
+--     where pronamespace = 'public'::regnamespace and prosecdef;
+--   -- ↑ confirms SECURITY DEFINER functions have search_path pinned
