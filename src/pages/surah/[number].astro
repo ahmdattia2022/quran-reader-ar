@@ -158,6 +158,19 @@ const jsonLd = {
             </svg>
             <span>نطاق التلاوة</span>
           </button>
+
+          <button
+            id="toggle-memo-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 transition hover:border-emerald-500 hover:text-emerald-400"
+            aria-pressed="false"
+            title="إخفاء نص الآيات للمراجعة والحفظ"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+            <span>وضع الحفظ</span>
+          </button>
         </div>
 
         <!-- Range / loop / speed panel -->
@@ -279,6 +292,15 @@ const jsonLd = {
             {a.text}
             <span class="ayah-number">﴿{arabicDigits(a.numberInSurah)}﴾</span>
           </p>
+
+          <!-- Memorization-mode placeholder (shown only when mode is on and ayah not revealed) -->
+          <button
+            type="button"
+            class="memo-placeholder hidden w-full rounded-lg border border-dashed border-emerald-500/30 bg-emerald-950/20 py-8 text-center text-sm text-emerald-300/80 transition hover:bg-emerald-950/30"
+            aria-label={`إظهار الآية ${a.numberInSurah}`}
+          >
+            اضغط للإظهار · آية {arabicDigits(a.numberInSurah)}
+          </button>
 
           <!-- Tafsir (hidden by default, toggled on) -->
           {a.tafsir && (
@@ -1002,6 +1024,46 @@ const jsonLd = {
 
       if (tafsirVisible) loadActiveTafsirEdition();
 
+      // ── Memorization mode ──────────────────────────────────────────
+      const memoBtn = document.getElementById('toggle-memo-btn');
+      const ayahsSection = document.getElementById('ayahs');
+      let memoOn = localStorage.getItem('qr_memo') === 'true';
+
+      function paintMemoBtn() {
+        memoBtn.setAttribute('aria-pressed', String(memoOn));
+        if (memoOn) {
+          memoBtn.classList.add('border-emerald-500', 'text-emerald-400');
+        } else {
+          memoBtn.classList.remove('border-emerald-500', 'text-emerald-400');
+        }
+      }
+      function applyMemo() {
+        if (memoOn) {
+          ayahsSection.classList.add('memo-mode');
+        } else {
+          ayahsSection.classList.remove('memo-mode');
+          // Reset revealed state when turning off so next toggle starts fresh
+          ayahsSection.querySelectorAll('.memo-revealed').forEach((el) => el.classList.remove('memo-revealed'));
+        }
+        paintMemoBtn();
+      }
+
+      memoBtn.addEventListener('click', () => {
+        memoOn = !memoOn;
+        localStorage.setItem('qr_memo', String(memoOn));
+        applyMemo();
+      });
+
+      // Tap-to-reveal on each placeholder
+      document.querySelectorAll('.memo-placeholder').forEach((placeholder) => {
+        placeholder.addEventListener('click', () => {
+          const card = placeholder.closest('.ayah-card');
+          if (card) card.classList.add('memo-revealed');
+        });
+      });
+
+      applyMemo();
+
       // ── Page-level keyboard shortcuts ──────────────────────────────
       document.addEventListener('keydown', (e) => {
         const tag = (e.target && e.target.tagName || '').toLowerCase();
@@ -1012,6 +1074,7 @@ const jsonLd = {
         if (e.key === 'ArrowLeft' && nextSurahHref) { e.preventDefault(); location.href = nextSurahHref; return; }
         if (e.key === 'k' || e.key === 'K') { e.preventDefault(); playBtn.click(); return; }
         if (e.key === 't' || e.key === 'T') { e.preventDefault(); tafsirBtn.click(); return; }
+        if (e.key === 'm' || e.key === 'M') { e.preventDefault(); memoBtn.click(); return; }
       });
     })();
   </script>

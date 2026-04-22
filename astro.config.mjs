@@ -16,7 +16,10 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   build: {
-    inlineStylesheets: 'auto',
+    // Never inline the Tailwind bundle. With 6996 pages the duplication
+    // would be ~300MB extra on disk and wire; a shared hashed stylesheet
+    // at /_astro/*.css (cached immutable for one year) is much better.
+    inlineStylesheets: 'never',
   },
   compressHTML: true,
 });

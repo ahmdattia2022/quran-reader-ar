@@ -1,0 +1,221 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { allSurahs, arabicDigits, shortSurahName, RECITERS, DEFAULT_RECITER } from '../lib/quran.ts';
+import { DUAAS } from '../data/duaas.ts';
+
+// Strip leading basmala from surah-1 / surah-9 first ayah, same as surah page
+const BASMALA_MARKERS = ['بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ'];
+function stripBasmala(text: string): string {
+  for (const m of BASMALA_MARKERS) if (text.startsWith(m)) return text.slice(m.length).trim();
+  return text;
+}
+
+// Hydrate each duaa ref with text + tafsir + global number
+type HydratedAyah = {
+  s: number; a: number; n: number;
+  text: string; tafsir: string;
+  surahName: string;
+};
+const duaas = DUAAS.map((d) => {
+  const hydrated: HydratedAyah[] = [];
+  for (const r of d.ayahs) {
+    const surah = allSurahs.find((s) => s.number === r.s);
+    if (!surah) continue;
+    const ayah = surah.ayahs.find((x) => x.numberInSurah === r.a);
+    if (!ayah) continue;
+    let text = ayah.text;
+    // Strip basmala when it's the opening of a surah and not surahs 1 or 9
+    if (r.a === 1 && r.s !== 1 && r.s !== 9) text = stripBasmala(text);
+    hydrated.push({
+      s: r.s,
+      a: r.a,
+      n: ayah.numberInQuran,
+      text,
+      tafsir: ayah.tafsir || '',
+      surahName: shortSurahName(surah.name),
+    });
+  }
+  return { ...d, hydrated };
+});
+
+const title = 'أدعية من القرآن الكريم - ٣٠ دعاء مختار بالصوت والتفسير | القرآن الكريم';
+const description = 'مجموعة من أشهر الأدعية القرآنية: دعاء الكرب، دعاء الوالدين، دعاء السداد، دعاء الاعتراف بالذنب، ودعاء أولي الألباب، وغيرها. مع الصوت والتفسير وإمكانية المشاركة.';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'أدعية من القرآن',
+  description,
+  inLanguage: 'ar',
+  url: new URL(Astro.url.pathname, Astro.site).toString(),
+};
+---
+<BaseLayout title={title} description={description} jsonLd={jsonLd}>
+  <section class="mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
+    <nav aria-label="breadcrumb" class="mb-6 text-sm">
+      <ol class="flex items-center gap-2 text-slate-400">
+        <li><a href="/" class="transition hover:text-emerald-400">الرئيسية</a></li>
+        <li class="text-slate-600">‹</li>
+        <li class="text-slate-300">أدعية من القرآن</li>
+      </ol>
+    </nav>
+
+    <header class="mb-8 text-center">
+      <h1 class="text-3xl font-bold text-white md:text-4xl">أدعية من القرآن الكريم</h1>
+      <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
+        مجموعة من أشهر الأدعية في كتاب الله. اضغط على الأيقونات لاستماع أو نسخ الآية.
+      </p>
+
+      <!-- Reciter picker -->
+      <div class="mx-auto mt-5 max-w-sm">
+        <label for="duaa-reciter" class="sr-only">اختر القارئ</label>
+        <select
+          id="duaa-reciter"
+          class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+        >
+          {RECITERS.map((r) => (
+            <option value={r.id} selected={r.id === DEFAULT_RECITER}>{r.name}</option>
+          ))}
+        </select>
+      </div>
+    </header>
+
+    <!-- Table of contents -->
+    <details class="mb-8 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+      <summary class="cursor-pointer text-sm font-semibold text-emerald-400">الفهرس · {arabicDigits(duaas.length)} دعاء</summary>
+      <ul class="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
+        {duaas.map((d, idx) => (
+          <li>
+            <a href={`#duaa-${idx}`} class="block truncate rounded px-2 py-1 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-300">
+              <span class="text-xs text-slate-500 arabic-num">{arabicDigits(idx + 1)}.</span>
+              {d.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
+
+    <div class="space-y-6">
+      {duaas.map((d, idx) => (
+        <article id={`duaa-${idx}`} class="rounded-2xl border border-slate-800 bg-slate-900/30 p-5 md:p-6">
+          <header class="mb-4">
+            <div class="flex items-baseline gap-2">
+              <span class="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-300 arabic-num">
+                {arabicDigits(idx + 1)}
+              </span>
+              <h2 class="text-lg font-bold text-white">{d.title}</h2>
+            </div>
+            {d.context && (
+              <p class="mt-1.5 text-xs text-slate-400">{d.context}</p>
+            )}
+          </header>
+
+          <div class="space-y-4">
+            {d.hydrated.map((a) => (
+              <div class="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+                <p class="quran-text text-slate-50">
+                  {a.text}
+                  <span class="ayah-number">﴿{arabicDigits(a.a)}﴾</span>
+                </p>
+
+                <!-- Meta + controls -->
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                  <a href={`/surah/${a.s}/?ayah=${a.a}`} class="hover:text-emerald-400">
+                    سورة {a.surahName} · الآية {arabicDigits(a.a)}
+                  </a>
+                  <div class="flex items-center gap-1">
+                    <button
+                      class="duaa-play-btn rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-emerald-400"
+                      data-ayah-global={a.n}
+                      aria-label="تشغيل"
+                      title="تشغيل"
+                    >
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    <button
+                      class="duaa-copy-btn rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-emerald-400"
+                      data-ayah-text={a.text}
+                      data-ayah-local={a.a}
+                      data-surah-name={a.surahName}
+                      aria-label="نسخ"
+                      title="نسخ"
+                    >
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {a.tafsir && (
+                  <details class="mt-3 rounded border border-slate-800 bg-slate-900/40">
+                    <summary class="cursor-pointer p-2.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                      التفسير الميسر
+                    </summary>
+                    <p class="border-t border-slate-800 p-2.5 text-sm leading-relaxed text-slate-300">{a.tafsir}</p>
+                  </details>
+                )}
+              </div>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <audio id="duaa-audio" preload="none"></audio>
+  <div id="duaa-toast" class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-800 px-4 py-2.5 text-sm text-white opacity-0 shadow-xl ring-1 ring-emerald-500/30 transition-opacity duration-300 pointer-events-none"></div>
+
+  <script is:inline>
+    (function () {
+      const RECITERS = {
+        'ar.alafasy': 128, 'ar.abdulbasitmurattal': 192, 'ar.abdurrahmaansudais': 192,
+        'ar.saoodshuraym': 64, 'ar.mahermuaiqly': 128, 'ar.minshawi': 128,
+        'ar.husary': 128, 'ar.hudhaify': 128, 'ar.ibrahimakhbar': 32,
+        'ar.muhammadayyoub': 128, 'ar.muhammadjibreel': 128,
+      };
+      const arDigits = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
+
+      const audio = document.getElementById('duaa-audio');
+      const select = document.getElementById('duaa-reciter');
+      const toast = document.getElementById('duaa-toast');
+
+      let reciterId = localStorage.getItem('qr_reciter') || 'ar.alafasy';
+      if (select) { select.value = reciterId; }
+
+      select.addEventListener('change', (e) => {
+        reciterId = e.target.value;
+        localStorage.setItem('qr_reciter', reciterId);
+      });
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
+      }
+
+      document.querySelectorAll('.duaa-play-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const n = Number(btn.dataset.ayahGlobal);
+          const bitrate = RECITERS[reciterId] || 128;
+          audio.src = `https://cdn.islamic.network/quran/audio/${bitrate}/${reciterId}/${n}.mp3`;
+          audio.play().catch(() => {});
+        });
+      });
+
+      document.querySelectorAll('.duaa-copy-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const text = btn.dataset.ayahText;
+          const a = btn.dataset.ayahLocal;
+          const sn = btn.dataset.surahName;
+          try {
+            await navigator.clipboard.writeText(`${text} ﴿${arDigits(a)}﴾\nسورة ${sn} · الآية ${arDigits(a)}`);
+            showToast('تم النسخ');
+          } catch { showToast('تعذّر النسخ'); }
+        });
+      });
+    })();
+  </script>
+</BaseLayout>

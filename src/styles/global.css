@@ -71,6 +71,15 @@ body {
   transition: background-color 200ms, border-color 200ms, box-shadow 200ms;
 }
 
+/* Memorization mode: hide ayah text until the card is tapped */
+.memo-mode .ayah-card:not(.memo-revealed) .quran-text,
+.memo-mode .ayah-card:not(.memo-revealed) .tafsir-block {
+  display: none !important;
+}
+.memo-mode .ayah-card:not(.memo-revealed) .memo-placeholder {
+  display: block !important;
+}
+
 /* Arabic-Indic numerals helper */
 .arabic-num {
   font-feature-settings: "anum" on;
