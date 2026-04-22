@@ -7,17 +7,19 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "node scripts/compute-hash.mjs",
+    "prebuild": "node scripts/gen-pwa-icons.mjs && node scripts/build-search-index.mjs && node scripts/compute-hash.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
     "fetch:quran": "node scripts/fetch-quran.mjs",
     "hash:quran": "node scripts/compute-hash.mjs",
+    "icons:pwa": "node scripts/gen-pwa-icons.mjs",
     "ping:indexnow": "node scripts/ping-indexnow.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
     "@tailwindcss/vite": "^4.2.4",
+    "adhan": "^4.4.3",
     "astro": "^6.1.8",
     "tailwindcss": "^4.2.4"
   }

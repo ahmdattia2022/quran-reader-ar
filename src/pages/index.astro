@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PrayerStrip from '../components/PrayerStrip.astro';
 import { surahIndex, arabicDigits, revelationTypeAr, shortSurahName } from '../lib/quran.ts';
 
 const jsonLd = {
@@ -64,8 +65,27 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
         </dl>
       </div>
 
-      <!-- Three-way entry: Surah list / Mushaf pages / Juz -->
-      <div class="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
+      <!-- Hijri date + next prayer strip -->
+      <PrayerStrip />
+
+      <!-- Continue-reading card (hidden by default; shown via JS if last-read exists) -->
+      <a
+        id="continue-reading"
+        href="#"
+        class="mx-auto mt-3 hidden max-w-3xl items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 transition hover:bg-amber-500/10 sm:flex"
+      >
+        <svg class="h-6 w-6 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        <div class="min-w-0 flex-1 text-right">
+          <p class="text-xs text-slate-400">تابع من حيث توقفت</p>
+          <p id="cr-label" class="text-sm font-bold text-white">—</p>
+        </div>
+        <svg class="h-4 w-4 shrink-0 rotate-180 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+
+      <!-- Four-way entry: Surah list / Mushaf / Juz / Awqat -->
+      <div class="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
         <a href="#surah-list" class="flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 transition hover:bg-emerald-500/10">
           <svg class="h-6 w-6 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h12"/></svg>
           <div class="min-w-0 flex-1 text-right">
@@ -76,7 +96,7 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
         <a href="/mushaf/" class="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/60 p-4 transition hover:border-emerald-500/60">
           <svg class="h-6 w-6 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v16H4zM13 4h7v16h-7z"/></svg>
           <div class="min-w-0 flex-1 text-right">
-            <p class="text-sm font-bold text-white">قراءة المصحف</p>
+            <p class="text-sm font-bold text-white">المصحف</p>
             <p class="text-xs text-slate-400">٦٠٤ صفحة</p>
           </div>
         </a>
@@ -85,6 +105,13 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
           <div class="min-w-0 flex-1 text-right">
             <p class="text-sm font-bold text-white">الأجزاء</p>
             <p class="text-xs text-slate-400">٣٠ جزءًا</p>
+          </div>
+        </a>
+        <a href="/awqat/" class="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/60 p-4 transition hover:border-emerald-500/60">
+          <svg class="h-6 w-6 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="min-w-0 flex-1 text-right">
+            <p class="text-sm font-bold text-white">المواقيت</p>
+            <p class="text-xs text-slate-400">والقبلة</p>
           </div>
         </a>
       </div>
@@ -193,6 +220,27 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
         }
         empty.classList.toggle('hidden', visible > 0);
       });
+
+      // Continue reading card
+      try {
+        const raw = localStorage.getItem('qr_last_read');
+        if (raw) {
+          const lr = JSON.parse(raw);
+          if (lr && lr.surah) {
+            const card = document.getElementById('continue-reading');
+            const label = document.getElementById('cr-label');
+            if (card && label) {
+              const surahItem = items.find((x) => Number(x.dataset.surahNumber) === lr.surah);
+              const name = surahItem?.dataset.surahName || ('سورة ' + lr.surah);
+              const ayah = lr.ayah ? ' · الآية ' + lr.ayah : '';
+              label.textContent = name + ayah;
+              card.setAttribute('href', '/surah/' + lr.surah + (lr.ayah ? '/?ayah=' + lr.ayah : ''));
+              card.classList.remove('hidden');
+              card.classList.add('flex');
+            }
+          }
+        }
+      } catch {}
     })();
   </script>
 </BaseLayout>

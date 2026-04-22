@@ -1,0 +1,89 @@
+---
+/**
+ * Compact prayer-times strip for the home page. Shows Hijri date always;
+ * shows next prayer + countdown if the user has set a location on /awqat.
+ * Uses the same localStorage key (qr_prayer_settings_v1) as the awqat page.
+ */
+---
+<div id="prayer-strip" class="mx-auto mt-6 max-w-3xl overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-900/60 p-4 sm:p-5">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p class="text-[11px] uppercase tracking-wider text-emerald-400">اليوم</p>
+      <p id="ps-hijri" class="mt-1 text-base font-bold text-white sm:text-lg">—</p>
+      <p id="ps-greg" class="text-xs text-slate-400">—</p>
+    </div>
+    <div id="ps-prayer" class="text-right">
+      <p class="text-[11px] uppercase tracking-wider text-emerald-400">الصلاة القادمة</p>
+      <p id="ps-prayer-name" class="mt-1 text-base font-bold text-white sm:text-lg">
+        <a href="/awqat/" class="underline decoration-emerald-500/60 hover:text-emerald-300">تحديد المواقيت</a>
+      </p>
+      <p id="ps-prayer-time" class="text-xs text-slate-400">اضبط موقعك لعرض المواقيت</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { PrayerTimes, Coordinates, CalculationMethod, Madhab } from 'adhan';
+  import { hijriDateArabic, PRAYER_LABELS_AR, formatTime24 } from '../lib/prayer.ts';
+
+  const arDigits = (s: string | number) =>
+    String(s).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+
+  const hijri = document.getElementById('ps-hijri');
+  const greg = document.getElementById('ps-greg');
+  const pName = document.getElementById('ps-prayer-name');
+  const pTime = document.getElementById('ps-prayer-time');
+
+  if (hijri && greg) {
+    hijri.textContent = hijriDateArabic();
+    greg.textContent = new Intl.DateTimeFormat('ar-EG', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    }).format(new Date());
+  }
+
+  try {
+    const raw = localStorage.getItem('qr_prayer_settings_v1');
+    if (!raw) throw new Error('no settings');
+    const s = JSON.parse(raw);
+    if (s.lat == null || s.lon == null) throw new Error('no loc');
+
+    const coords = new Coordinates(s.lat, s.lon);
+    const cm: any = CalculationMethod;
+    const params = (cm[s.method] ?? cm.MuslimWorldLeague)();
+    params.madhab = s.madhab === 'Hanafi' ? Madhab.Hanafi : Madhab.Shafi;
+
+    const now = new Date();
+    const times = new PrayerTimes(coords, now, params);
+    const ordered: Array<{ k: keyof typeof PRAYER_LABELS_AR; t: Date }> = [
+      { k: 'fajr', t: times.fajr },
+      { k: 'dhuhr', t: times.dhuhr },
+      { k: 'asr', t: times.asr },
+      { k: 'maghrib', t: times.maghrib },
+      { k: 'isha', t: times.isha },
+    ];
+    let nxt = ordered.find((r) => r.t.getTime() > now.getTime());
+    let suffix = '';
+    if (!nxt) {
+      const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+      const tmr = new PrayerTimes(coords, tomorrow, params);
+      nxt = { k: 'fajr', t: tmr.fajr };
+      suffix = ' (غداً)';
+    }
+    if (pName) pName.innerHTML = `<a href="/awqat/" class="hover:text-emerald-300">${PRAYER_LABELS_AR[nxt.k]}${suffix}</a>`;
+    if (pTime) {
+      const update = () => {
+        const diff = nxt!.t.getTime() - Date.now();
+        if (diff <= 0) { location.reload(); return; }
+        const h = Math.floor(diff / 3_600_000);
+        const m = Math.floor((diff % 3_600_000) / 60_000);
+        const timeStr = arDigits(formatTime24(nxt!.t));
+        const inStr = h > 0 ? `بعد ${arDigits(h)} س ${arDigits(m)} د` : `بعد ${arDigits(m)} د`;
+        pTime!.textContent = `${timeStr} · ${inStr}`;
+      };
+      update();
+      setInterval(update, 30000);
+    }
+  } catch {
+    // No settings — keep the "تحديد المواقيت" CTA in place
+  }
+</script>

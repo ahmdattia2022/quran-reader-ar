@@ -196,6 +196,17 @@ const jsonLd = {
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                 </svg>
               </button>
+              <button
+                class="bookmark-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-amber-400"
+                data-ayah-local={a.numberInSurah}
+                title="إضافة إلى الإشارات"
+                aria-label={`إشارة مرجعية للآية ${a.numberInSurah}`}
+                aria-pressed="false"
+              >
+                <svg class="bookmark-icon h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -405,6 +416,86 @@ const jsonLd = {
           el.classList.add('ayah-active');
           setTimeout(() => el.classList.remove('ayah-active'), 3500);
         });
+      })();
+
+      // Bookmarks (qr_bookmarks_v1 = [{s, a, ts}])
+      const surahMatch = location.pathname.match(/\/surah\/(\d+)/);
+      const surahNum = surahMatch ? Number(surahMatch[1]) : 0;
+
+      function readBookmarks() {
+        try { return JSON.parse(localStorage.getItem('qr_bookmarks_v1') || '[]'); } catch { return []; }
+      }
+      function writeBookmarks(arr) {
+        try { localStorage.setItem('qr_bookmarks_v1', JSON.stringify(arr)); } catch {}
+      }
+      function isBookmarked(s, a, list) {
+        return list.some((b) => b.s === s && b.a === a);
+      }
+      function paintBookmarkBtn(btn, on) {
+        const icon = btn.querySelector('.bookmark-icon');
+        if (!icon) return;
+        if (on) {
+          icon.setAttribute('fill', 'currentColor');
+          btn.classList.add('text-amber-400');
+          btn.classList.remove('text-slate-400');
+          btn.setAttribute('aria-pressed', 'true');
+          btn.title = 'إزالة من الإشارات';
+        } else {
+          icon.setAttribute('fill', 'none');
+          btn.classList.remove('text-amber-400');
+          btn.classList.add('text-slate-400');
+          btn.setAttribute('aria-pressed', 'false');
+          btn.title = 'إضافة إلى الإشارات';
+        }
+      }
+      (function initBookmarks() {
+        const list = readBookmarks();
+        document.querySelectorAll('.bookmark-ayah-btn').forEach((btn) => {
+          const a = Number(btn.dataset.ayahLocal);
+          paintBookmarkBtn(btn, isBookmarked(surahNum, a, list));
+          btn.addEventListener('click', () => {
+            const current = readBookmarks();
+            const idx = current.findIndex((b) => b.s === surahNum && b.a === a);
+            if (idx === -1) {
+              current.push({ s: surahNum, a, ts: Date.now() });
+              writeBookmarks(current);
+              paintBookmarkBtn(btn, true);
+              showToast('تمت إضافة الإشارة');
+            } else {
+              current.splice(idx, 1);
+              writeBookmarks(current);
+              paintBookmarkBtn(btn, false);
+              showToast('تم حذف الإشارة');
+            }
+          });
+        });
+      })();
+
+      // Last-read tracking via IntersectionObserver — write when an ayah
+      // is centered in the viewport for ≥1.5s. Throttled by a small
+      // grace window so scrolling quickly past ayahs doesn't thrash.
+      (function initLastRead() {
+        if (!('IntersectionObserver' in window) || !surahNum) return;
+        let pendingLocal = 0;
+        let pendingTimer = null;
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const e of entries) {
+              if (!e.isIntersecting) continue;
+              const local = Number((e.target).dataset.ayah);
+              if (!local) continue;
+              pendingLocal = local;
+              if (pendingTimer) clearTimeout(pendingTimer);
+              pendingTimer = setTimeout(() => {
+                try {
+                  localStorage.setItem('qr_last_read', JSON.stringify({ surah: surahNum, ayah: pendingLocal, ts: Date.now() }));
+                } catch {}
+              }, 1500);
+            }
+          },
+          { rootMargin: '-40% 0px -40% 0px', threshold: 0 },
+        );
+        document.querySelectorAll('.ayah-card').forEach((el) => io.observe(el));
       })();
 
       // Tafsir toggle

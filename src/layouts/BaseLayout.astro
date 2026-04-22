@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import ReadingSettings from '../components/ReadingSettings.astro';
+import PWAInstaller from '../components/PWAInstaller.astro';
 
 export interface Props {
   title: string;
@@ -53,8 +54,14 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
     rel="stylesheet"
   />
 
-  <!-- Favicon -->
+  <!-- Favicon + PWA -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="القرآن" />
+  <meta name="mobile-web-app-capable" content="yes" />
 
   <!-- Robots / SEO -->
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
@@ -87,17 +94,27 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
         <span class="text-lg">القرآن الكريم</span>
       </a>
       <nav class="flex items-center gap-0.5 text-sm sm:gap-1">
-        <a href="/" class="rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-3">
+        <a href="/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">
           السور
         </a>
-        <a href="/mushaf/" class="rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-3">
+        <a href="/mushaf/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">
           المصحف
         </a>
-        <a href="/juz/" class="rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-3">
+        <a href="/juz/" class="hidden rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:inline-block sm:px-2.5">
           الأجزاء
         </a>
-        <a href="/about/" class="hidden rounded-md px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:block sm:px-3">
-          عن الموقع
+        <a href="/awqat/" class="rounded-md px-2 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400 sm:px-2.5">
+          المواقيت
+        </a>
+        <a href="/search/" class="rounded-md p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="بحث">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
+          </svg>
+        </a>
+        <a href="/bookmarks/" class="rounded-md p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-emerald-400" aria-label="الإشارات المرجعية">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
         </a>
       </nav>
     </div>
@@ -109,6 +126,9 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
 
   <!-- Floating reading settings — font size, line height, theme -->
   <ReadingSettings />
+
+  <!-- PWA install button + SW registration -->
+  <PWAInstaller />
 
   <!-- Restore theme before first paint to avoid flash -->
   <script is:inline>

@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { surahIndex, arabicDigits, shortSurahName } from '../lib/quran.ts';
+
+// Expose a tiny surah-name map to the client so we can label bookmarks
+const names: Record<number, string> = {};
+for (const s of surahIndex) names[s.number] = shortSurahName(s.name);
+
+const title = 'الإشارات المرجعية | القرآن الكريم';
+const description =
+  'الآيات التي أضفتها إلى إشاراتك المرجعية. تُحفظ محلياً على متصفحك فقط — لا حساب، لا خوادم.';
+---
+<BaseLayout title={title} description={description}>
+  <section class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-14">
+    <nav aria-label="breadcrumb" class="mb-6 text-sm">
+      <ol class="flex items-center gap-2 text-slate-400">
+        <li><a href="/" class="transition hover:text-emerald-400">الرئيسية</a></li>
+        <li class="text-slate-600">‹</li>
+        <li class="text-slate-300">الإشارات</li>
+      </ol>
+    </nav>
+
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-3xl font-bold text-white md:text-4xl">الإشارات المرجعية</h1>
+        <p class="mt-2 text-sm text-slate-400">آياتك المحفوظة — محلياً على جهازك فقط.</p>
+      </div>
+      <button
+        id="bm-clear"
+        type="button"
+        class="hidden rounded-lg border border-red-500/40 bg-red-950/30 px-3 py-2 text-xs text-red-300 transition hover:bg-red-950/50"
+      >
+        حذف الكل
+      </button>
+    </div>
+
+    <!-- Last read -->
+    <div id="last-read-block" class="mb-6 hidden rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5">
+      <p class="text-xs uppercase tracking-wider text-amber-300">تابع من حيث توقفت</p>
+      <div class="mt-2 flex items-center justify-between gap-3">
+        <p id="lr-label" class="text-base font-bold text-white">—</p>
+        <a id="lr-link" href="#" class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-amber-400">استأنف</a>
+      </div>
+    </div>
+
+    <div id="bm-list" class="space-y-3"></div>
+
+    <p id="bm-empty" class="hidden py-12 text-center text-slate-400">
+      لا توجد إشارات بعد. افتح أي سورة واضغط على أيقونة <span class="inline-block align-middle"><svg class="inline h-4 w-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span> بجانب أي آية.
+    </p>
+  </section>
+
+  <script is:inline define:vars={{ surahNames: names }}>
+    (function () {
+      const arDigits = (s) => String(s).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+      const listEl = document.getElementById('bm-list');
+      const emptyEl = document.getElementById('bm-empty');
+      const clearBtn = document.getElementById('bm-clear');
+      const lrBlock = document.getElementById('last-read-block');
+      const lrLabel = document.getElementById('lr-label');
+      const lrLink = document.getElementById('lr-link');
+
+      function read() {
+        try { return JSON.parse(localStorage.getItem('qr_bookmarks_v1') || '[]'); } catch { return []; }
+      }
+      function write(arr) {
+        try { localStorage.setItem('qr_bookmarks_v1', JSON.stringify(arr)); } catch {}
+      }
+
+      function render() {
+        const arr = read().slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        if (!arr.length) {
+          listEl.innerHTML = '';
+          emptyEl.classList.remove('hidden');
+          clearBtn.classList.add('hidden');
+          return;
+        }
+        emptyEl.classList.add('hidden');
+        clearBtn.classList.remove('hidden');
+        listEl.innerHTML = arr.map((b) => {
+          const name = surahNames[b.s] || ('سورة ' + b.s);
+          const when = b.ts ? new Date(b.ts).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+          return `
+            <div class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60">
+              <a href="/surah/${b.s}/?ayah=${b.a}" class="min-w-0 flex-1">
+                <p class="truncate font-semibold text-white">سورة ${name} · الآية ${arDigits(b.a)}</p>
+                <p class="mt-0.5 text-xs text-slate-500">${when}</p>
+              </a>
+              <button
+                class="bm-del rounded-lg p-2 text-slate-400 transition hover:bg-red-950/40 hover:text-red-300"
+                data-s="${b.s}" data-a="${b.a}" aria-label="حذف"
+                title="حذف"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </button>
+            </div>`;
+        }).join('');
+        listEl.querySelectorAll('.bm-del').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const s = Number(btn.dataset.s), a = Number(btn.dataset.a);
+            const current = read().filter((x) => !(x.s === s && x.a === a));
+            write(current);
+            render();
+          });
+        });
+      }
+
+      clearBtn.addEventListener('click', () => {
+        if (!confirm('حذف جميع الإشارات؟')) return;
+        write([]);
+        render();
+      });
+
+      // Last read
+      try {
+        const raw = localStorage.getItem('qr_last_read');
+        if (raw) {
+          const lr = JSON.parse(raw);
+          if (lr && lr.surah) {
+            const name = surahNames[lr.surah] || ('سورة ' + lr.surah);
+            lrLabel.textContent = 'سورة ' + name + (lr.ayah ? ' · الآية ' + arDigits(lr.ayah) : '');
+            lrLink.setAttribute('href', '/surah/' + lr.surah + (lr.ayah ? '/?ayah=' + lr.ayah : ''));
+            lrBlock.classList.remove('hidden');
+          }
+        }
+      } catch {}
+
+      render();
+    })();
+  </script>
+</BaseLayout>

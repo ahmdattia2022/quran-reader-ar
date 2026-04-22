@@ -27,8 +27,28 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <p>
         التطبيق <strong class="text-white">موقع ثابت</strong> (static site) مستضاف على Cloudflare Pages.
         كل صفحة مُعدّة مسبقاً وقت البناء، ولا يوجد خادم تطبيق يتلقى طلباتك.
-        تفضيلاتك (آخر سورة قرأتها، اختيار القارئ، حجم الخط، المظهر) تُحفظ في
-        <strong class="text-white">localStorage</strong> في متصفحك فقط — لا تغادر جهازك.
+        تفضيلاتك (آخر سورة قرأتها، اختيار القارئ، حجم الخط، المظهر، الإشارات المرجعية،
+        موقعك لمواقيت الصلاة) تُحفظ في <strong class="text-white">localStorage</strong>
+        في متصفحك فقط — لا تغادر جهازك.
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">مواقيت الصلاة والقبلة</h2>
+      <p>
+        عند استخدام صفحة <a href="/awqat/" class="text-emerald-400 underline hover:text-emerald-300">المواقيت</a>،
+        يُطلب منك إذن تحديد الموقع الجغرافي. إذا وافقت، يُستخدم موقعك
+        <strong class="text-white">محلياً فقط</strong> داخل متصفحك لحساب المواقيت والقبلة
+        عبر مكتبة <a href="https://github.com/batoulapps/adhan-js" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">Adhan</a> مفتوحة المصدر.
+        الموقع <strong class="text-white">لا يُرسَل إلى أي خادم</strong> — لا خادمنا ولا خادم آخر.
+        يمكنك أيضاً اختيار مدينة من قائمة جاهزة بدلاً من استخدام موقعك الفعلي.
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">العمل بدون إنترنت (PWA)</h2>
+      <p>
+        الموقع يُثبَّت كتطبيق على جهازك ويعمل بدون إنترنت عبر
+        <strong class="text-white">Service Worker</strong> يخزّن الصفحات والنص القرآني
+        في ذاكرة متصفحك. هذا التخزين
+        <strong class="text-white">محلي على جهازك بالكامل</strong>،
+        ولا يُرسَل إلى أي مكان. يمكنك حذفه بأي وقت من إعدادات متصفحك.
       </p>
 
       <h2 class="mt-8 text-2xl font-bold text-white">الطلبات الخارجية الوحيدة</h2>

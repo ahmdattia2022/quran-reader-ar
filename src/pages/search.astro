@@ -1,0 +1,180 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const title = 'البحث في القرآن الكريم | مصحف إلكتروني';
+const description =
+  'ابحث عن أي كلمة أو جملة في القرآن الكريم كاملاً. البحث يعمل محلياً على جهازك، بدون إرسال أي بيانات إلى الخارج.';
+---
+<BaseLayout title={title} description={description}>
+  <section class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-14">
+    <nav aria-label="breadcrumb" class="mb-6 text-sm">
+      <ol class="flex items-center gap-2 text-slate-400">
+        <li><a href="/" class="transition hover:text-emerald-400">الرئيسية</a></li>
+        <li class="text-slate-600">‹</li>
+        <li class="text-slate-300">البحث</li>
+      </ol>
+    </nav>
+
+    <div class="mb-6 text-center">
+      <h1 class="text-3xl font-bold text-white md:text-4xl">البحث في القرآن</h1>
+      <p class="mt-2 text-sm text-slate-400">
+        ابحث في كامل النص — يتجاهل التشكيل والهمزات تلقائياً.
+      </p>
+    </div>
+
+    <div class="relative">
+      <svg class="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
+      </svg>
+      <input
+        id="q"
+        type="search"
+        placeholder="مثال: الرحمن، رب العالمين، لا إله إلا"
+        class="w-full rounded-xl border border-slate-700 bg-slate-900/70 py-3.5 pr-12 pl-4 text-base text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+        autocomplete="off"
+        autofocus
+      />
+    </div>
+
+    <div id="status" class="mt-3 text-sm text-slate-400"></div>
+
+    <div id="results" class="mt-6 space-y-3"></div>
+  </section>
+
+  <script is:inline>
+    (function () {
+      const input = document.getElementById('q');
+      const status = document.getElementById('status');
+      const results = document.getElementById('results');
+
+      const arDigits = (s) => String(s).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+
+      function normalize(s) {
+        return String(s || '')
+          .replace(/[ً-ْٰـۖۗۚۛۘۙۜ]/g, '')     // remove tashkeel + tatweel + pause marks
+          .replace(/[إأآا]/g, 'ا')
+          .replace(/ى/g, 'ي')
+          .replace(/ة/g, 'ه')
+          .replace(/ؤ/g, 'و')
+          .replace(/ئ/g, 'ي')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      let INDEX = null;     // { ayahs: [[s,a,t], ...], names: {...} }
+      let NORMALIZED = null; // Array<string> parallel to ayahs
+      let loading = null;
+
+      async function loadIndex() {
+        if (INDEX) return INDEX;
+        if (loading) return loading;
+        status.textContent = 'جارٍ تحميل فهرس البحث…';
+        loading = fetch('/search-index.json').then(async (r) => {
+          if (!r.ok) throw new Error('فشل تحميل الفهرس');
+          const data = await r.json();
+          INDEX = data;
+          NORMALIZED = data.ayahs.map((row) => normalize(row[2]));
+          status.textContent = 'جاهز للبحث — ' + arDigits(data.ayahs.length) + ' آية.';
+          return data;
+        }).catch((e) => {
+          status.textContent = 'تعذّر تحميل فهرس البحث: ' + e.message;
+          loading = null;
+          throw e;
+        });
+        return loading;
+      }
+
+      function highlight(text, normQuery) {
+        // Highlight by matching the normalized query against original text.
+        // Simple approach: find the same substring in the normalized text
+        // then map back char-by-char. To keep this simple & performant,
+        // we walk in parallel.
+        const normText = normalize(text);
+        const idx = normText.indexOf(normQuery);
+        if (idx === -1) return text;
+
+        // Walk the original string and build the normalized counter
+        // in parallel, so we can mark the start/end in the original.
+        let origStart = -1, origEnd = -1;
+        let normPos = 0;
+        let origPos = 0;
+        while (origPos < text.length && normPos < normText.length) {
+          if (normPos === idx && origStart === -1) origStart = origPos;
+          if (normPos === idx + normQuery.length) { origEnd = origPos; break; }
+          // Advance original; advance normalized only if the char survives normalization
+          const ch = text[origPos];
+          const normCh = normalize(ch);
+          origPos++;
+          if (normCh) normPos += normCh.length;
+        }
+        if (origEnd === -1) origEnd = text.length;
+        if (origStart === -1) return text;
+
+        const before = text.slice(0, origStart);
+        const hit = text.slice(origStart, origEnd);
+        const after = text.slice(origEnd);
+        return `${before}<mark class="bg-emerald-500/30 text-emerald-200 rounded px-0.5">${hit}</mark>${after}`;
+      }
+
+      function render(matches, query, normQuery) {
+        if (!matches.length) {
+          results.innerHTML = `<p class="py-8 text-center text-slate-400">لا توجد نتائج لـ <span class="text-white">«${query}»</span></p>`;
+          return;
+        }
+        const cap = 100;
+        const shown = matches.slice(0, cap);
+        results.innerHTML = shown.map(([s, a, t]) => {
+          const name = INDEX.names[s] || ('سورة ' + s);
+          return `
+            <a href="/surah/${s}/?ayah=${a}" class="block rounded-xl border border-slate-800 bg-slate-900/40 p-4 transition hover:border-emerald-500/60 hover:bg-slate-900/80">
+              <div class="mb-2 flex items-center justify-between text-xs text-slate-500">
+                <span class="font-semibold text-emerald-400">سورة ${name} · الآية ${arDigits(a)}</span>
+                <span class="rotate-180 opacity-60">›</span>
+              </div>
+              <p class="quran-text text-slate-50" dir="rtl">${highlight(t, normQuery)}</p>
+            </a>`;
+        }).join('');
+        if (matches.length > cap) {
+          results.innerHTML += `<p class="py-4 text-center text-sm text-slate-500">عرض ${arDigits(cap)} من أصل ${arDigits(matches.length)} نتيجة — حدّد بحثك أكثر</p>`;
+        }
+      }
+
+      let timer = null;
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(run, 180);
+      });
+
+      async function run() {
+        const raw = input.value.trim();
+        if (raw.length < 2) {
+          results.innerHTML = '';
+          status.textContent = raw.length ? 'اكتب حرفين على الأقل…' : '';
+          return;
+        }
+        const normQuery = normalize(raw);
+        if (!normQuery) { results.innerHTML = ''; return; }
+        await loadIndex();
+        if (!INDEX || !NORMALIZED) return;
+        status.textContent = 'جارٍ البحث…';
+        const matches = [];
+        for (let i = 0; i < NORMALIZED.length; i++) {
+          if (NORMALIZED[i].includes(normQuery)) {
+            matches.push(INDEX.ayahs[i]);
+          }
+        }
+        status.textContent = matches.length
+          ? `${arDigits(matches.length)} نتيجة`
+          : 'لا توجد نتائج';
+        render(matches, raw, normQuery);
+      }
+
+      // Support ?q= prefill
+      const urlQ = new URLSearchParams(location.search).get('q');
+      if (urlQ) {
+        input.value = urlQ;
+        run();
+      }
+    })();
+  </script>
+</BaseLayout>
