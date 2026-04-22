@@ -461,6 +461,9 @@ const ERROR_WHITELIST: Array<[RegExp, string]> = [
   [/invalid email|email.*invalid/i, 'بريد إلكتروني غير صالح.'],
   [/timeout/i, 'انتهت مهلة الاتصال. حاول مرة أخرى.'],
   [/rate.?limit|too many requests/i, 'طلبات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.'],
+  [/(provider is not )?enabled|unsupported provider/i, 'طريقة الدخول عبر Google غير مفعّلة حالياً. استخدم البريد الإلكتروني.'],
+  [/popup.*(blocked|closed)|popup_closed/i, 'تم إغلاق النافذة قبل اكتمال تسجيل الدخول. حاول مرة أخرى.'],
+  [/user denied|access denied|user cancelled/i, 'تم إلغاء تسجيل الدخول.'],
 ];
 const GENERIC_ERROR_AR = 'تعذّر إتمام العملية. حاول مجدداً بعد قليل.';
 
@@ -476,6 +479,40 @@ function userFacingError(e: any, context: string): string {
   if (!raw) return GENERIC_ERROR_AR;
   for (const [re, ar] of ERROR_WHITELIST) if (re.test(raw)) return ar;
   return GENERIC_ERROR_AR;
+}
+
+/**
+ * Sign in via Google OAuth. Triggers a full-page redirect to Google's
+ * consent screen; after the user approves, Google redirects to Supabase's
+ * /auth/v1/callback which processes the token and bounces to our
+ * emailRedirectTo (/auth/callback/), where supabase-js picks up the
+ * session via detectSessionInUrl.
+ *
+ * Requires the Google provider to be enabled in Supabase dashboard →
+ * Authentication → Providers, with Client ID + Secret from Google Cloud
+ * Console. If the provider isn't enabled, returns a user-facing Arabic
+ * error.
+ */
+export async function signInWithGoogle(): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase();
+  if (!sb) return { ok: false, error: 'المزامنة غير مفعّلة.' };
+  const redirectTo = `${window.location.origin}/auth/callback/`;
+  logger.info('auth', 'google oauth requested', { redirectTo });
+  try {
+    const req = sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    const { error } = await withTimeout(req, 15_000, 'oauth-google');
+    if (error) return { ok: false, error: userFacingError(error, 'oauth-google') };
+    // On success supabase-js has already navigated the page to Google.
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: userFacingError(e, 'oauth-google') };
+  }
 }
 
 /** Sign in via email magic link. */
