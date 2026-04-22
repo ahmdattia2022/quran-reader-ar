@@ -263,7 +263,15 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
         try {
           const s = JSON.parse(localStorage.getItem('qr_reading_settings_v1') || '{}');
           const root = document.documentElement;
-          if (s.theme) root.setAttribute('data-theme', s.theme);
+          if (s.theme) {
+            const pref = s.theme;
+            let effective: string = pref;
+            if (pref === 'system' || (pref !== 'light' && pref !== 'dark' && pref !== 'night')) {
+              effective = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            root.setAttribute('data-theme', effective);
+            root.setAttribute('data-theme-pref', pref);
+          }
           if (s.fontScale) root.style.setProperty('--font-scale', String(s.fontScale));
           if (s.lineScale) root.style.setProperty('--line-height-scale', String(s.lineScale));
         } catch {}
@@ -274,17 +282,23 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
     (window as any).qrOpenAuth = () => window.dispatchEvent(new CustomEvent('qr:open-auth'));
   </script>
 
-  <!-- Restore theme before first paint to avoid flash -->
+  <!-- Restore theme before first paint to avoid FOUC. Mirrors the
+       resolveEffective() logic in ReadingSettings: 'system' follows the
+       OS preference via prefers-color-scheme. -->
   <script is:inline>
     (function () {
       try {
         var raw = localStorage.getItem('qr_reading_settings_v1');
-        if (raw) {
-          var s = JSON.parse(raw);
-          if (s.theme) document.documentElement.setAttribute('data-theme', s.theme);
-          if (s.fontScale) document.documentElement.style.setProperty('--font-scale', String(s.fontScale));
-          if (s.lineScale) document.documentElement.style.setProperty('--line-height-scale', String(s.lineScale));
+        var s = raw ? JSON.parse(raw) : {};
+        var pref = s.theme || 'system';
+        var effective = pref;
+        if (pref === 'system' || (pref !== 'light' && pref !== 'dark' && pref !== 'night')) {
+          effective = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
+        document.documentElement.setAttribute('data-theme', effective);
+        document.documentElement.setAttribute('data-theme-pref', pref);
+        if (s.fontScale) document.documentElement.style.setProperty('--font-scale', String(s.fontScale));
+        if (s.lineScale) document.documentElement.style.setProperty('--line-height-scale', String(s.lineScale));
       } catch (e) {}
     })();
   </script>
