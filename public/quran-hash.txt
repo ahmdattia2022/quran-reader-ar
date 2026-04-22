@@ -1,6 +1,6 @@
 # Quran Reader — content integrity hashes (SHA-256)
 # Source: api.alquran.cloud — Uthmani edition + Tafsir Al-Muyassar
-# Generated at build time: 2026-04-22T13:30:52.489Z
+# Generated at build time: 2026-04-22T15:09:08.298Z
 
 quran.json  47a45d83f3047fe3383f9cb23879c7e1554ab450bf3dd9b07f54d8873307f599  4389454 bytes
 index.json  fbd0d6a049b100bf8b23ce2412dc249ace42d9d7e448d6bf2fee9370585c7096  24031 bytes

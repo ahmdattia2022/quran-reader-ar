@@ -2,6 +2,8 @@
 import '../styles/global.css';
 import ReadingSettings from '../components/ReadingSettings.astro';
 import PWAInstaller from '../components/PWAInstaller.astro';
+import AuthModal from '../components/AuthModal.astro';
+import SyncBadge from '../components/SyncBadge.astro';
 
 export interface Props {
   title: string;
@@ -129,6 +131,36 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
 
   <!-- PWA install button + SW registration -->
   <PWAInstaller />
+
+  <!-- Sync badge (only shows when signed in) + auth modal (hidden unless opened) -->
+  <SyncBadge />
+  <AuthModal />
+
+  <!-- Start the sync engine (no-op if Supabase env vars aren't set) -->
+  <script>
+    import { initSync } from '../lib/sync';
+    import { isConfigured } from '../lib/supabase';
+
+    initSync();
+
+    // When reading_settings or prayer_settings pull from cloud, re-apply
+    // them so the UI picks up the new values without a full reload.
+    window.addEventListener('qr:data-cloud-pulled', (e: any) => {
+      const key = e.detail?.key;
+      if (key === 'reading_settings') {
+        try {
+          const s = JSON.parse(localStorage.getItem('qr_reading_settings_v1') || '{}');
+          const root = document.documentElement;
+          if (s.theme) root.setAttribute('data-theme', s.theme);
+          if (s.fontScale) root.style.setProperty('--font-scale', String(s.fontScale));
+          if (s.lineScale) root.style.setProperty('--line-height-scale', String(s.lineScale));
+        } catch {}
+      }
+    });
+
+    // Expose a helper for surfacing the auth modal from in-app CTAs
+    (window as any).qrOpenAuth = () => window.dispatchEvent(new CustomEvent('qr:open-auth'));
+  </script>
 
   <!-- Restore theme before first paint to avoid flash -->
   <script is:inline>

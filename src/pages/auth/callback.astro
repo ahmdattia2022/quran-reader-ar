@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// This page receives the magic-link redirect from Supabase. The client
+// library picks up the session from the URL hash/search params and
+// persists it. We then redirect to home (or back to ?next= if provided).
+---
+<BaseLayout
+  title="تسجيل الدخول…"
+  description="جارٍ إتمام تسجيل الدخول…"
+>
+  <section class="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4 py-20 sm:px-6">
+    <div id="auth-cb-box" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center">
+      <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10">
+        <svg id="auth-cb-spin" class="h-6 w-6 animate-spin text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <svg id="auth-cb-check" class="hidden h-6 w-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <svg id="auth-cb-x" class="hidden h-6 w-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
+      <h1 id="auth-cb-title" class="text-xl font-bold text-white">جارٍ تسجيل الدخول…</h1>
+      <p id="auth-cb-sub" class="mt-2 text-sm text-slate-400">لحظة من فضلك</p>
+
+      <a id="auth-cb-home" href="/" class="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-emerald-400 hidden">
+        الرجوع إلى الرئيسية
+      </a>
+    </div>
+  </section>
+
+  <script>
+    import { getSupabase, isConfigured } from '../../lib/supabase';
+
+    const title = document.getElementById('auth-cb-title')!;
+    const sub = document.getElementById('auth-cb-sub')!;
+    const spin = document.getElementById('auth-cb-spin')!;
+    const check = document.getElementById('auth-cb-check')!;
+    const xMark = document.getElementById('auth-cb-x')!;
+    const home = document.getElementById('auth-cb-home')!;
+
+    async function run() {
+      if (!isConfigured()) {
+        title.textContent = 'المزامنة غير مفعّلة';
+        sub.textContent = 'لم يتم ضبط Supabase على هذا النشر.';
+        spin.classList.add('hidden');
+        xMark.classList.remove('hidden');
+        home.classList.remove('hidden');
+        return;
+      }
+      const sb = getSupabase();
+      if (!sb) return;
+
+      // detectSessionInUrl: true (default in our client config) handles
+      // the token extraction automatically. We just poll for the session.
+      try {
+        // Give the client a moment to process the URL
+        await new Promise((r) => setTimeout(r, 400));
+        const { data, error } = await sb.auth.getSession();
+        if (error) throw error;
+        if (data?.session) {
+          title.textContent = 'تم تسجيل الدخول بنجاح';
+          sub.textContent = data.session.user.email || '';
+          spin.classList.add('hidden');
+          check.classList.remove('hidden');
+          setTimeout(() => { location.href = '/'; }, 1500);
+        } else {
+          title.textContent = 'الرابط منتهي الصلاحية';
+          sub.textContent = 'رابط الدخول غير صالح أو انتهت صلاحيته. حاول من جديد.';
+          spin.classList.add('hidden');
+          xMark.classList.remove('hidden');
+          home.classList.remove('hidden');
+        }
+      } catch (e: any) {
+        title.textContent = 'حدث خطأ';
+        sub.textContent = e?.message || 'تعذّر تسجيل الدخول';
+        spin.classList.add('hidden');
+        xMark.classList.remove('hidden');
+        home.classList.remove('hidden');
+      }
+    }
+    run();
+  </script>
+</BaseLayout>

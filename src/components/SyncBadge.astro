@@ -1,0 +1,52 @@
+---
+/**
+ * Tiny floating indicator that shows sync status. Hidden when Supabase
+ * is not configured, or when user is signed out (to keep the UI clean
+ * for the local-only majority).
+ */
+---
+<div
+  id="sync-badge"
+  class="fixed left-4 top-[4.5rem] z-20 hidden items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-[10px] font-semibold text-slate-300 shadow-sm backdrop-blur-md sm:left-6 sm:top-20"
+  aria-live="polite"
+>
+  <span id="sync-dot" class="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
+  <span id="sync-text">—</span>
+</div>
+
+<script>
+  import { isConfigured } from '../lib/supabase';
+  import type { SyncStatus } from '../lib/sync';
+
+  const badge = document.getElementById('sync-badge')!;
+  const dot = document.getElementById('sync-dot')!;
+  const text = document.getElementById('sync-text')!;
+
+  if (!isConfigured()) {
+    badge.remove();
+  } else {
+    function apply(status: SyncStatus) {
+      // Hide badge entirely when signed out (vast majority of users)
+      if (status === 'signed_out') {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+        return;
+      }
+      badge.classList.remove('hidden');
+      badge.classList.add('flex');
+
+      const map: Record<SyncStatus, { label: string; dot: string }> = {
+        signed_out: { label: '', dot: 'bg-slate-500' },
+        offline:    { label: 'غير متصل', dot: 'bg-amber-400' },
+        syncing:    { label: 'جارٍ المزامنة', dot: 'bg-sky-400 animate-pulse' },
+        synced:     { label: 'متزامن', dot: 'bg-emerald-400' },
+        error:      { label: 'خطأ في المزامنة', dot: 'bg-red-400' },
+      };
+      const { label, dot: dotCls } = map[status];
+      text.textContent = label;
+      dot.className = 'h-1.5 w-1.5 rounded-full ' + dotCls;
+    }
+
+    window.addEventListener('qr:sync-status', (e: any) => apply(e.detail.status));
+  }
+</script>

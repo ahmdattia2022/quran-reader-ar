@@ -17,10 +17,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <h2 class="mt-8 text-2xl font-bold text-white">ما لا نفعله</h2>
       <ul class="space-y-3 pr-6 list-disc marker:text-emerald-400">
         <li>لا نستخدم <strong class="text-white">Google Analytics</strong> أو أي أداة تتبّع.</li>
-        <li>لا نضع <strong class="text-white">كعكات (cookies)</strong> على متصفحك.</li>
+        <li>لا نضع <strong class="text-white">كعكات (cookies)</strong> للتتبّع على متصفحك.</li>
         <li>لا نعرض <strong class="text-white">إعلانات</strong> من أي نوع.</li>
-        <li>لا نطلب منك <strong class="text-white">إنشاء حساب</strong> أو تسجيل دخول.</li>
-        <li>لا نرسل أي بيانات إلى خوادمنا — لأننا لا نشغّل خوادم تطبيق أصلاً.</li>
+        <li>لا نطلب منك <strong class="text-white">إنشاء حساب</strong> للاستخدام — الحساب اختياري تماماً للمزامنة فقط.</li>
+        <li>لا نبيع بياناتك ولا نشاركها مع أي جهة لأغراض تجارية.</li>
       </ul>
 
       <h2 class="mt-8 text-2xl font-bold text-white">ما يحدث فعلياً</h2>
@@ -40,6 +40,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         عبر مكتبة <a href="https://github.com/batoulapps/adhan-js" target="_blank" rel="noopener" class="text-emerald-400 underline hover:text-emerald-300">Adhan</a> مفتوحة المصدر.
         الموقع <strong class="text-white">لا يُرسَل إلى أي خادم</strong> — لا خادمنا ولا خادم آخر.
         يمكنك أيضاً اختيار مدينة من قائمة جاهزة بدلاً من استخدام موقعك الفعلي.
+      </p>
+
+      <h2 class="mt-8 text-2xl font-bold text-white">المزامنة عبر الأجهزة (اختياري تماماً)</h2>
+      <p>
+        إذا أردت مزامنة إشاراتك وإعداداتك بين هاتفك وحاسوبك، يمكنك إنشاء حساب
+        <strong class="text-white">اختياري</strong> ببريدك الإلكتروني فقط —
+        بدون كلمة مرور، عن طريق رابط دخول يُرسَل على بريدك.
+      </p>
+      <p class="mt-3">
+        الموقع يعمل بالكامل بدون حساب — الحساب هو للمزامنة فقط. إن اخترت إنشاءه:
+      </p>
+      <ul class="mt-3 space-y-2 pr-6 list-disc marker:text-emerald-400">
+        <li>نخزّن <strong class="text-white">بريدك الإلكتروني</strong> فقط لأغراض تسجيل الدخول.</li>
+        <li>نخزّن <strong class="text-white">بياناتك</strong>: الإشارات المرجعية، آخر آية قرأتها، إعدادات القراءة، وإحداثيات موقعك لحساب مواقيت الصلاة (إن اخترت حفظها).</li>
+        <li>لا نستخدم بياناتك في أي غرض آخر، ولا نبيعها، ولا نشاركها مع أي طرف ثالث.</li>
+        <li>يمكنك حذف حسابك وجميع بياناتك بضغطة زر واحدة من قائمة المزامنة.</li>
+      </ul>
+      <p class="mt-3">
+        قاعدة بيانات المستخدمين مستضافة على <strong class="text-white">Supabase</strong>
+        (خادم PostgreSQL مع تشفير كامل وسياسات أمان على مستوى الصف — Row Level Security).
+        لا يستطيع أي مستخدم آخر رؤية بياناتك، ولا نستطيع نحن رؤيتها بغير صلاحيات الإدارة الضرورية للتشغيل.
       </p>
 
       <h2 class="mt-8 text-2xl font-bold text-white">العمل بدون إنترنت (PWA)</h2>
