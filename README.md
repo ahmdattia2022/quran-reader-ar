@@ -2,7 +2,7 @@
 
 > Fast, free, ad-free Arabic Quran reader. Static-generated, privacy-first, works offline.
 
-**Live:** [quran-reader-ar.pages.dev](https://quran-reader-ar.pages.dev)
+**Live:** [quran-reader-ar.pages.dev](https://quran-reader-ar.pages.dev) · See [`docs/`](docs/) for architecture + deployment + runbook.
 
 ---
 
