@@ -236,176 +236,126 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
 
   <!-- Surah list -->
   <section class="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-14">
-    <h2 class="mb-6 text-xl font-bold text-white md:text-2xl">فهرس السور</h2>
+    <div class="mb-5 flex items-center justify-between gap-3">
+      <h2 class="text-xl font-bold text-white md:text-2xl">فهرس السور</h2>
+      <span class="text-xs text-slate-500 arabic-num">
+        <span id="visible-count">{arabicDigits(surahIndex.length)}</span>
+        <span class="text-slate-600"> / {arabicDigits(surahIndex.length)}</span>
+      </span>
+    </div>
 
+    <!-- Revelation-type filter chips -->
+    <div class="mb-5 flex flex-wrap items-center gap-2 text-xs">
+      <button type="button" data-filter="all" class="filter-chip rounded-full border border-emerald-500 bg-emerald-500/10 px-3 py-1.5 font-semibold text-emerald-300 transition" aria-pressed="true">
+        الكل
+      </button>
+      <button type="button" data-filter="Meccan" class="filter-chip rounded-full border border-slate-700 px-3 py-1.5 text-slate-300 transition hover:border-emerald-500/60 hover:text-emerald-300" aria-pressed="false">
+        مكية
+      </button>
+      <button type="button" data-filter="Medinan" class="filter-chip rounded-full border border-slate-700 px-3 py-1.5 text-slate-300 transition hover:border-emerald-500/60 hover:text-emerald-300" aria-pressed="false">
+        مدنية
+      </button>
+    </div>
+
+    <!-- Compact pill grid: ~45-60px per cell, all 114 fit in a scroll-light layout -->
     <ul
       id="surah-list"
-      class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+      class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
     >
-      {surahIndex.slice(0, 40).map((s) => (
+      {surahIndex.map((s) => (
         <li
           data-surah-name={shortSurahName(s.name)}
           data-surah-english={s.englishName.toLowerCase()}
           data-surah-number={s.number}
+          data-surah-revelation={s.revelationType}
         >
           <a
             href={`/surah/${s.number}`}
-            class="group relative flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-3.5 transition hover:border-emerald-500/60 hover:bg-slate-900/80"
+            class="group flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-2.5 py-2 transition hover:border-emerald-500/60 hover:bg-slate-900/80"
           >
-            <!-- Number medallion -->
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center">
-              <svg class="absolute h-11 w-11 text-emerald-500/30 transition group-hover:text-emerald-500/60" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M22 2 L40 12 L40 32 L22 42 L4 32 L4 12 Z"/>
-              </svg>
-              <span class="relative text-sm font-bold text-emerald-400 arabic-num">{arabicDigits(s.number)}</span>
-            </div>
-
-            <!-- Name + meta -->
-            <div class="min-w-0 flex-1">
-              <div class="flex items-baseline gap-2">
-                <h3 class="truncate font-semibold text-white text-lg">{shortSurahName(s.name)}</h3>
-                <span class="text-xs text-slate-500">{s.englishName}</span>
-              </div>
-              <p class="mt-0.5 text-xs text-slate-400">
-                <span class={s.revelationType === 'Meccan' ? 'text-amber-400' : 'text-sky-400'}>
-                  {revelationTypeAr(s.revelationType)}
-                </span>
-                <span class="mx-1.5 text-slate-700">·</span>
-                <span>{arabicDigits(s.numberOfAyahs)} آية</span>
-              </p>
-            </div>
-
-            <svg class="h-4 w-4 shrink-0 rotate-180 text-slate-600 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
+            <span class={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold arabic-num ${s.revelationType === 'Meccan' ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/30' : 'bg-sky-500/10 text-sky-400 ring-1 ring-sky-500/30'}`}>
+              {arabicDigits(s.number)}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-semibold text-white">{shortSurahName(s.name)}</span>
+              <span class="block truncate text-[10px] text-slate-500 arabic-num">{arabicDigits(s.numberOfAyahs)} آية</span>
+            </span>
           </a>
         </li>
       ))}
     </ul>
-
-    <!-- Sentinel + status for scroll-triggered loading of remaining surahs -->
-    <div id="surah-sentinel" class="py-6 text-center text-xs text-slate-500" aria-live="polite">
-      <span id="sentinel-label">جارٍ تحميل باقي السور…</span>
-    </div>
 
     <p id="no-results" class="hidden py-8 text-center text-slate-400">
       لا توجد نتائج مطابقة
     </p>
   </section>
 
-  <!-- Remaining surah metadata (surahs 41-114) inlined for fast scroll-load -->
-  <script type="application/json" id="surah-rest-data" set:html={JSON.stringify(
-    surahIndex.slice(40).map((s) => ({
-      n: s.number,
-      name: shortSurahName(s.name),
-      en: s.englishName,
-      rev: s.revelationType,
-      ayahs: s.numberOfAyahs,
-    }))
-  )}></script>
-
   <script is:inline>
     (function () {
       const input = document.getElementById('surah-search');
       const list = document.getElementById('surah-list');
       const empty = document.getElementById('no-results');
-      const sentinel = document.getElementById('surah-sentinel');
-      const sentinelLabel = document.getElementById('sentinel-label');
-      const restDataEl = document.getElementById('surah-rest-data');
+      const visibleCountEl = document.getElementById('visible-count');
       if (!input || !list) return;
 
       const arDigits = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
-      const revAr = (r) => (r === 'Meccan' ? 'مكية' : 'مدنية');
 
-      let items = Array.from(list.querySelectorAll('[data-surah-name]'));
-
-      // Render additional surahs from inline JSON in batches of 30.
-      let restPool = [];
-      try { restPool = JSON.parse(restDataEl.textContent || '[]'); } catch {}
-
-      function renderSurahLi(s) {
-        const li = document.createElement('li');
-        li.setAttribute('data-surah-name', s.name);
-        li.setAttribute('data-surah-english', String(s.en || '').toLowerCase());
-        li.setAttribute('data-surah-number', String(s.n));
-        const revClass = s.rev === 'Meccan' ? 'text-amber-400' : 'text-sky-400';
-        li.innerHTML = `
-          <a href="/surah/${s.n}" class="group relative flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-3.5 transition hover:border-emerald-500/60 hover:bg-slate-900/80">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center">
-              <svg class="absolute h-11 w-11 text-emerald-500/30 transition group-hover:text-emerald-500/60" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 2 L40 12 L40 32 L22 42 L4 32 L4 12 Z"/></svg>
-              <span class="relative text-sm font-bold text-emerald-400 arabic-num">${arDigits(s.n)}</span>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-baseline gap-2">
-                <h3 class="truncate font-semibold text-white text-lg">${s.name}</h3>
-                <span class="text-xs text-slate-500">${s.en || ''}</span>
-              </div>
-              <p class="mt-0.5 text-xs text-slate-400">
-                <span class="${revClass}">${revAr(s.rev)}</span>
-                <span class="mx-1.5 text-slate-700">·</span>
-                <span>${arDigits(s.ayahs)} آية</span>
-              </p>
-            </div>
-            <svg class="h-4 w-4 shrink-0 rotate-180 text-slate-600 transition group-hover:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          </a>`;
-        return li;
-      }
-
-      function loadNextBatch(n) {
-        const take = restPool.splice(0, n);
-        const frag = document.createDocumentFragment();
-        for (const s of take) frag.appendChild(renderSurahLi(s));
-        list.appendChild(frag);
-        items = Array.from(list.querySelectorAll('[data-surah-name]'));
-        if (restPool.length === 0 && sentinel) sentinel.remove();
-        else if (sentinelLabel) sentinelLabel.textContent = 'جارٍ تحميل باقي السور…';
-      }
-
-      function loadAllRemaining() {
-        while (restPool.length) loadNextBatch(30);
-        if (sentinel) sentinel.remove();
-      }
-
-      // 74 surahs × ~1.5 KB DOM each ≈ 111 KB — render them all right
-      // after first paint. Keeps the HTML-shipped initial payload small
-      // (won the bandwidth fight), but guarantees users see the full
-      // list without any scroll-detection fragility. Chunk across two
-      // frames so the initial paint lands fast.
-      if (restPool.length === 0) {
-        if (sentinel) sentinel.remove();
-      } else {
-        requestAnimationFrame(() => {
-          loadNextBatch(40);
-          requestAnimationFrame(loadAllRemaining);
-        });
-      }
+      const items = Array.from(list.querySelectorAll('[data-surah-name]'));
 
       function normalize(s) {
         return String(s || '')
           .toLowerCase()
-          .replace(/[ً-ْٰـ]/g, '') // remove tashkeel + tatweel
+          .replace(/[ً-ْٰـ]/g, '') // tashkeel + tatweel
           .replace(/[إأآا]/g, 'ا')
           .replace(/ى/g, 'ي')
           .replace(/ة/g, 'ه')
           .trim();
       }
 
-      input.addEventListener('input', (e) => {
-        const raw = e.target.value;
-        // If user is searching, materialise the rest so the filter can
-        // hit every surah (72 × 500 bytes of DOM — still trivial).
-        if (raw && restPool.length) loadAllRemaining();
-        const q = normalize(raw);
+      let activeFilter = 'all'; // 'all' | 'Meccan' | 'Medinan'
+      let searchTerm = '';
+
+      function applyFilters() {
+        const q = normalize(searchTerm);
         let visible = 0;
         for (const li of items) {
           const name = normalize(li.dataset.surahName);
           const en = (li.dataset.surahEnglish || '').toLowerCase();
           const num = li.dataset.surahNumber;
-          const match = !q || name.includes(q) || en.includes(q) || num === q;
-          li.style.display = match ? '' : 'none';
-          if (match) visible++;
+          const rev = li.dataset.surahRevelation;
+          const matchesSearch = !q || name.includes(q) || en.includes(q) || num === q;
+          const matchesFilter = activeFilter === 'all' || rev === activeFilter;
+          const show = matchesSearch && matchesFilter;
+          li.style.display = show ? '' : 'none';
+          if (show) visible++;
         }
         empty.classList.toggle('hidden', visible > 0);
+        if (visibleCountEl) visibleCountEl.textContent = arDigits(visible);
+      }
+
+      input.addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        applyFilters();
+      });
+
+      // Filter chips
+      const chips = document.querySelectorAll('.filter-chip');
+      chips.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          activeFilter = btn.getAttribute('data-filter') || 'all';
+          chips.forEach((b) => {
+            const isActive = b === btn;
+            b.setAttribute('aria-pressed', String(isActive));
+            if (isActive) {
+              b.classList.remove('border-slate-700', 'text-slate-300');
+              b.classList.add('border-emerald-500', 'bg-emerald-500/10', 'font-semibold', 'text-emerald-300');
+            } else {
+              b.classList.add('border-slate-700', 'text-slate-300');
+              b.classList.remove('border-emerald-500', 'bg-emerald-500/10', 'font-semibold', 'text-emerald-300');
+            }
+          });
+          applyFilters();
+        });
       });
 
       // Continue-reading card — renders initially from localStorage,
