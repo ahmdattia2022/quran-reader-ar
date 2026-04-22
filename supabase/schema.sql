@@ -30,7 +30,23 @@ create table if not exists public.user_data (
   created_at timestamptz default now()
 );
 
--- 2) Row-level security — users can only access their own row -----------
+-- 2) Table-level privileges -----------------------------------------
+--
+-- PostgREST rejects requests at the table-privilege layer BEFORE RLS
+-- even runs. So we must explicitly grant CRUD to the `authenticated`
+-- role (the role PostgREST assumes when a valid JWT is presented).
+--
+-- `anon` (no JWT) gets no access — they shouldn't be touching this
+-- table at all. The RLS policies are the second line of defence that
+-- ensures one user can't see another user's row.
+--
+-- Required because "Automatically expose new tables" is OFF on this
+-- project (correct security posture — we grant explicitly per table).
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.user_data to authenticated;
+
+-- 3) Row-level security — users can only access their own row -----------
 
 alter table public.user_data enable row level security;
 
