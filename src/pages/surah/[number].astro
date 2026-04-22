@@ -1270,17 +1270,31 @@ const jsonLd = {
         // trigger batched loading when advancing past the loaded set.
         loadMoreAyahs = loadMore;
 
-        // Scroll-triggered auto-pagination: pre-fire loadMore() when the
-        // button is within 400px of the viewport so reading feels seamless.
-        // Button stays visible as a manual fallback + progress indicator.
-        if ('IntersectionObserver' in window) {
-          const scrollIO = new IntersectionObserver((entries) => {
-            if (entries.some((e) => e.isIntersecting) && !loadMoreBtn.disabled) {
-              loadMore();
-            }
-          }, { rootMargin: '400px 0px', threshold: 0 });
-          scrollIO.observe(loadMoreWrap);
+        // Scroll-triggered: drain while the load-more wrap is within 400px
+        // of viewport bottom. Self-re-runs after each batch so a tall
+        // viewport loads multiple batches in one pass.
+        let draining = false;
+        async function drainWhileNear() {
+          if (draining || loadMoreBtn.disabled) return;
+          if (loadMoreWrap.classList.contains('hidden')) return;
+          const rect = loadMoreWrap.getBoundingClientRect();
+          const vh = window.innerHeight || document.documentElement.clientHeight;
+          if (rect.top > vh + 400) return;
+          draining = true;
+          try { await loadMore(); } finally { draining = false; }
+          if (!loadMoreWrap.classList.contains('hidden')) {
+            requestAnimationFrame(drainWhileNear);
+          }
         }
+        let ticking = false;
+        function scheduleDrain() {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(() => { ticking = false; drainWhileNear(); });
+        }
+        window.addEventListener('scroll', scheduleDrain, { passive: true });
+        window.addEventListener('resize', scheduleDrain, { passive: true });
+        setTimeout(drainWhileNear, 50);
       }
     })();
   </script>
