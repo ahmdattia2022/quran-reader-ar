@@ -390,8 +390,7 @@ const totalAyahs = surahIndex.reduce((sum, s) => sum + s.numberOfAyahs, 0);
         if (e && e.detail && e.detail.key === 'last_read') renderContinueReading();
       });
 
-      // Khatm home card
-      const arDigits = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
+      // Khatm home card (reuses the arDigits helper defined above)
       function renderKhatm() {
         try {
           const raw = localStorage.getItem('qr_khatm_v1');
