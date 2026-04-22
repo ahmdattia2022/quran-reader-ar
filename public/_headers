@@ -8,7 +8,7 @@
   X-Frame-Options: SAMEORIGIN
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), interest-cohort=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob:; media-src 'self' https://cdn.islamic.network; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.axiom.co https://cdn.islamic.network; manifest-src 'self'; worker-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' https://cdn.islamic.network; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.axiom.co https://cdn.islamic.network; manifest-src 'self'; worker-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
 
 # ── Immutable hashed build outputs — cache for one year ─────────────────
 /_astro/*
@@ -43,6 +43,11 @@
 
 # ── Extended tafsir editions — rarely change; one-week cache ───────────
 /tafsirs/*
+  Cache-Control: public, max-age=604800
+  Content-Type: application/json; charset=utf-8
+
+# ── Per-surah ayah data for paginated loading ───────────────────────────
+/surah-data/*
   Cache-Control: public, max-age=604800
   Content-Type: application/json; charset=utf-8
 

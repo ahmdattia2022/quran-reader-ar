@@ -1,13 +1,8 @@
 @import "tailwindcss";
 
-/* Amiri Quran for Uthmani script (Quran text), Amiri for body Arabic */
-@font-face {
-  font-family: 'AmiriQuran';
-  src: url('https://cdn.jsdelivr.net/gh/aliftype/amiri@main/fonts/AmiriQuran-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* Amiri Quran is loaded via Google Fonts in BaseLayout (no @font-face needed).
+   Fallback order: Amiri Quran (Uthmani script) → Amiri (body Arabic) →
+   Traditional Arabic → serif. */
 
 :root {
   color-scheme: dark;
@@ -26,15 +21,23 @@ body {
   min-height: 100dvh;
 }
 
-/* Quran text: use AmiriQuran for authentic Uthmani script */
+/* Quran text: use Amiri Quran for authentic Uthmani script.
+   Mobile gets tighter line-height so a 3–4 line ayah doesn't fill the
+   whole viewport — a recurring frustration in smaller-phone testing. */
 .quran-text {
-  font-family: 'AmiriQuran', 'Traditional Arabic', 'Amiri', 'Scheherazade New', serif;
-  font-size: calc(clamp(1.75rem, 1.1rem + 2.2vw, 2.75rem) * var(--font-scale, 1));
-  line-height: calc(2.4 * var(--line-height-scale, 1));
+  font-family: 'Amiri Quran', 'Traditional Arabic', 'Amiri', 'Scheherazade New', serif;
+  font-size: calc(clamp(1.5rem, 1rem + 2vw, 2.75rem) * var(--font-scale, 1));
+  line-height: calc(2.0 * var(--line-height-scale, 1));
   letter-spacing: 0;
-  word-spacing: 0.1em;
+  word-spacing: 0.08em;
   text-align: center;
   unicode-bidi: plaintext;
+}
+@media (min-width: 640px) {
+  .quran-text {
+    line-height: calc(2.4 * var(--line-height-scale, 1));
+    word-spacing: 0.1em;
+  }
 }
 
 .tafsir-text {
@@ -49,7 +52,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'AmiriQuran', serif;
+  font-family: 'Amiri Quran', serif;
   font-size: 0.95em;
   min-width: 2em;
   height: 2em;
@@ -69,6 +72,24 @@ body {
 /* Smooth reveal for ayah cards */
 .ayah-card {
   transition: background-color 200ms, border-color 200ms, box-shadow 200ms;
+}
+
+/* Mobile density: tighter ayah cards + guaranteed 44×44 touch targets
+   on icon buttons (WCAG + iOS Human Interface recommendation). */
+@media (max-width: 640px) {
+  .ayah-card {
+    padding: 1rem 0.875rem;
+  }
+  .ayah-card .play-ayah-btn,
+  .ayah-card .copy-ayah-btn,
+  .ayah-card .share-ayah-btn,
+  .ayah-card .bookmark-ayah-btn {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 /* Memorization mode: hide ayah text until the card is tapped */

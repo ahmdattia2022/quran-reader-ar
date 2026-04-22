@@ -43,6 +43,12 @@ const ayahs = surah.ayahs.map((a, i) => ({
   text: (i === 0 && showBasmalaHeader) ? stripBasmala(a.text) : a.text,
 }));
 
+// Pagination: only pre-render the first INITIAL_BATCH ayahs as HTML.
+// The rest come from /surah-data/<n>.json on demand (mobile bandwidth).
+const INITIAL_BATCH = 30;
+const initialAyahs = ayahs.slice(0, INITIAL_BATCH);
+const hasMore = ayahs.length > INITIAL_BATCH;
+
 const title = `سورة ${shortName} مكتوبة كاملة - قراءة واستماع وتفسير | القرآن الكريم`;
 const description = `سورة ${shortName} (${surah.englishName}) - ${revelationTypeAr(surah.revelationType)} - ${arabicDigits(surah.numberOfAyahs)} آية. اقرأ السورة كاملة بالرسم العثماني، مع التفسير الميسر والاستماع بأصوات كبار القراء.`;
 
@@ -222,7 +228,7 @@ const jsonLd = {
     )}
 
     <div id="ayahs" class="space-y-5">
-      {ayahs.map((a) => (
+      {initialAyahs.map((a) => (
         <article
           class="ayah-card rounded-2xl border border-slate-800 bg-slate-900/30 p-5 md:p-6"
           data-ayah={a.numberInSurah}
@@ -318,6 +324,27 @@ const jsonLd = {
         </article>
       ))}
     </div>
+
+    <!-- Load-more (pagination) -->
+    {hasMore && (
+      <div id="load-more-wrap" class="mt-6 rounded-2xl border border-emerald-500/20 bg-slate-900/40 p-5 text-center">
+        <p class="mb-2 text-sm text-slate-300">
+          تم عرض <span id="lm-shown" class="font-bold text-emerald-400 arabic-num">{arabicDigits(INITIAL_BATCH)}</span>
+          من <span class="font-bold text-white arabic-num">{arabicDigits(surah.numberOfAyahs)}</span> آية
+        </p>
+        <button
+          id="load-more-btn"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400 disabled:cursor-wait disabled:opacity-70"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+          <span id="lm-label">عرض ٣٠ آية أخرى</span>
+        </button>
+        <p class="mt-2 text-[11px] text-slate-500">الإعدادات تنطبق على الآيات الجديدة تلقائياً</p>
+      </div>
+    )}
 
     <!-- Prev / Next nav -->
     <nav class="mt-12 grid gap-3 sm:grid-cols-2">
@@ -517,8 +544,14 @@ const jsonLd = {
         document.querySelectorAll('.ayah-active').forEach((el) => el.classList.remove('ayah-active'));
         if (local < 1) return;
         const el = document.getElementById(`ayah-${local}`);
-        if (el) {
-          el.classList.add('ayah-active');
+        if (!el) return;
+        el.classList.add('ayah-active');
+        // Only auto-scroll if the ayah isn't already visible — lets the
+        // user scroll ahead while audio plays without getting yanked back.
+        const rect = el.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        const fullyVisible = rect.top >= 0 && rect.bottom <= vh;
+        if (!fullyVisible) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
@@ -529,6 +562,9 @@ const jsonLd = {
         audio.src = audioUrlFor(globalNum, currentReciter);
         audio.playbackRate = range.speed;
         audio.play().catch((e) => console.warn('Audio play failed:', e));
+        // Optimistic highlight (snappy feedback) — the `playing` event
+        // listener below re-highlights once audio actually starts, to
+        // keep visual + audio in sync on slow networks.
         highlightAyah(local);
         setPlayingUI(true);
         // Persist last-played position
@@ -538,7 +574,29 @@ const jsonLd = {
         }
       }
 
-      audio.addEventListener('ended', () => {
+      // Authoritative sync: when audio actually starts producing sound,
+      // confirm the highlight on the current ayah. Guards against cases
+      // where audio src changed but UI didn't catch up.
+      audio.addEventListener('playing', () => {
+        if (currentAyahLocal > 0) highlightAyah(currentAyahLocal);
+      });
+
+      // Exposed later by the pagination block so 'ended' can lazy-load
+      // the next batch before advancing past the last rendered ayah.
+      let loadMoreAyahs = null;
+
+      async function ensureAyahRendered(local) {
+        if (document.getElementById(`ayah-${local}`)) return true;
+        if (!loadMoreAyahs) return false;
+        // Load batches until we reach the requested ayah (bounded)
+        for (let i = 0; i < 20; i++) {
+          try { await loadMoreAyahs(); } catch { return false; }
+          if (document.getElementById(`ayah-${local}`)) return true;
+        }
+        return false;
+      }
+
+      audio.addEventListener('ended', async () => {
         if (!playingAll) {
           setPlayingUI(false);
           highlightAyah(0);
@@ -546,16 +604,20 @@ const jsonLd = {
         }
         // Advance within the range, then handle loop
         if (currentAyahLocal < range.to) {
-          playAyah(currentAyahLocal + 1);
+          const next = currentAyahLocal + 1;
+          await ensureAyahRendered(next);
+          playAyah(next);
           return;
         }
         // End of range reached — loop?
         if (loopsRemaining === 0 /* infinite */) {
+          await ensureAyahRendered(range.from);
           playAyah(range.from);
           return;
         }
         if (loopsRemaining > 1) {
           loopsRemaining -= 1;
+          await ensureAyahRendered(range.from);
           playAyah(range.from);
           return;
         }
@@ -624,16 +686,7 @@ const jsonLd = {
         }
       });
 
-      // Per-ayah play buttons
-      document.querySelectorAll('.play-ayah-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const local = Number(btn.dataset.ayahLocal);
-          playingAll = false;
-          playAyah(local);
-        });
-      });
-
-      // Copy buttons
+      // showToast used throughout (copy, share, bookmark, pagination)
       function showToast(msg) {
         toast.textContent = msg;
         toast.style.opacity = '1';
@@ -641,33 +694,26 @@ const jsonLd = {
         toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
       }
 
-      document.querySelectorAll('.copy-ayah-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const text = btn.dataset.ayahText;
-          const num = btn.dataset.ayahLocal;
-          try {
-            await navigator.clipboard.writeText(`${text} ﴿${num}﴾`);
-            showToast('تم نسخ الآية');
-          } catch {
-            showToast('تعذّر النسخ');
-          }
-        });
-      });
+      // Per-card wiring happens in wireAyahCards() at the bottom of this
+      // IIFE, called for both the initial 30 ayahs AND any new batch
+      // appended by the pagination loader.
 
       // URL-as-state: if ?ayah=N is present, scroll + highlight that ayah.
-      (function () {
+      // Deferred via setTimeout so the pagination loader (below) is wired
+      // before we try to load batches to reach the target.
+      setTimeout(async function handleTargetAyah() {
         const params = new URLSearchParams(location.search);
         const target = Number(params.get('ayah'));
         if (!target || target < 1 || target > totalAyahs) return;
+        await ensureAyahRendered(target);
         const el = document.getElementById(`ayah-${target}`);
         if (!el) return;
-        // Defer to next frame so layout is stable
         requestAnimationFrame(() => {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           el.classList.add('ayah-active');
           setTimeout(() => el.classList.remove('ayah-active'), 3500);
         });
-      })();
+      }, 0);
 
       // Bookmarks (qr_bookmarks_v1 = [{s, a, ts}])
       const surahMatch = location.pathname.match(/\/surah\/(\d+)/);
@@ -699,37 +745,14 @@ const jsonLd = {
           btn.title = 'إضافة إلى الإشارات';
         }
       }
-      (function initBookmarks() {
-        const list = readBookmarks();
-        document.querySelectorAll('.bookmark-ayah-btn').forEach((btn) => {
-          const a = Number(btn.dataset.ayahLocal);
-          paintBookmarkBtn(btn, isBookmarked(surahNum, a, list));
-          btn.addEventListener('click', () => {
-            const current = readBookmarks();
-            const idx = current.findIndex((b) => b.s === surahNum && b.a === a);
-            if (idx === -1) {
-              current.push({ s: surahNum, a, ts: Date.now() });
-              writeBookmarks(current);
-              paintBookmarkBtn(btn, true);
-              showToast('تمت إضافة الإشارة');
-            } else {
-              current.splice(idx, 1);
-              writeBookmarks(current);
-              paintBookmarkBtn(btn, false);
-              showToast('تم حذف الإشارة');
-            }
-          });
-        });
-      })();
-
-      // Last-read tracking via IntersectionObserver — write when an ayah
-      // is centered in the viewport for ≥1.5s. Throttled by a small
-      // grace window so scrolling quickly past ayahs doesn't thrash.
-      (function initLastRead() {
+      // Last-read tracking: a single shared IntersectionObserver. Exposed
+      // here so wireAyahCards() can observe newly-paginated cards too.
+      let lastReadIO = null;
+      (function initLastReadObserver() {
         if (!('IntersectionObserver' in window) || !surahNum) return;
         let pendingLocal = 0;
         let pendingTimer = null;
-        const io = new IntersectionObserver(
+        lastReadIO = new IntersectionObserver(
           (entries) => {
             for (const e of entries) {
               if (!e.isIntersecting) continue;
@@ -746,7 +769,6 @@ const jsonLd = {
           },
           { rootMargin: '-40% 0px -40% 0px', threshold: 0 },
         );
-        document.querySelectorAll('.ayah-card').forEach((el) => io.observe(el));
       })();
 
       // ── Share ayah as image ───────────────────────────────────────
@@ -884,14 +906,7 @@ const jsonLd = {
         return new Promise((resolve) => shareCanvas.toBlob((b) => resolve(b), 'image/png'));
       }
 
-      document.querySelectorAll('.share-ayah-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const ayahText = btn.dataset.ayahText || '';
-          const ayahNum = Number(btn.dataset.ayahLocal);
-          openShareModal();
-          await renderShareCanvas(ayahText, ayahNum);
-        });
-      });
+      // .share-ayah-btn click listeners are attached via wireAyahCards()
 
       shareDownload.addEventListener('click', async () => {
         const blob = await canvasToBlob();
@@ -1012,15 +1027,7 @@ const jsonLd = {
         }
       }
 
-      document.querySelectorAll('.tafsir-tab').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const ed = btn.getAttribute('data-tafsir-edition');
-          if (!ed) return;
-          currentEdition = ed;
-          localStorage.setItem('qr_tafsir_edition', ed);
-          loadActiveTafsirEdition();
-        });
-      });
+      // .tafsir-tab click listeners are attached via wireAyahCards()
 
       if (tafsirVisible) loadActiveTafsirEdition();
 
@@ -1054,13 +1061,7 @@ const jsonLd = {
         applyMemo();
       });
 
-      // Tap-to-reveal on each placeholder
-      document.querySelectorAll('.memo-placeholder').forEach((placeholder) => {
-        placeholder.addEventListener('click', () => {
-          const card = placeholder.closest('.ayah-card');
-          if (card) card.classList.add('memo-revealed');
-        });
-      });
+      // .memo-placeholder click listeners are attached via wireAyahCards()
 
       applyMemo();
 
@@ -1076,6 +1077,199 @@ const jsonLd = {
         if (e.key === 't' || e.key === 'T') { e.preventDefault(); tafsirBtn.click(); return; }
         if (e.key === 'm' || e.key === 'M') { e.preventDefault(); memoBtn.click(); return; }
       });
+
+      // ── Per-card wiring (idempotent via data-wired guard) ──────────
+      // Works for both the initial SSR'd 30 ayahs and ones appended by
+      // the pagination loader below.
+      function wireAyahCards(scope) {
+        scope = scope || document;
+        // Play
+        scope.querySelectorAll('.play-ayah-btn:not([data-wired])').forEach((btn) => {
+          btn.setAttribute('data-wired', '1');
+          btn.addEventListener('click', () => {
+            const local = Number(btn.dataset.ayahLocal);
+            playingAll = false;
+            playAyah(local);
+          });
+        });
+        // Copy
+        scope.querySelectorAll('.copy-ayah-btn:not([data-wired])').forEach((btn) => {
+          btn.setAttribute('data-wired', '1');
+          btn.addEventListener('click', async () => {
+            const text = btn.dataset.ayahText;
+            const num = btn.dataset.ayahLocal;
+            try {
+              await navigator.clipboard.writeText(`${text} ﴿${num}﴾`);
+              showToast('تم نسخ الآية');
+            } catch { showToast('تعذّر النسخ'); }
+          });
+        });
+        // Share
+        scope.querySelectorAll('.share-ayah-btn:not([data-wired])').forEach((btn) => {
+          btn.setAttribute('data-wired', '1');
+          btn.addEventListener('click', async () => {
+            const ayahText = btn.dataset.ayahText || '';
+            const ayahNum = Number(btn.dataset.ayahLocal);
+            openShareModal();
+            await renderShareCanvas(ayahText, ayahNum);
+          });
+        });
+        // Bookmark: paint + click
+        const bmList = readBookmarks();
+        scope.querySelectorAll('.bookmark-ayah-btn:not([data-wired])').forEach((btn) => {
+          btn.setAttribute('data-wired', '1');
+          const a = Number(btn.dataset.ayahLocal);
+          paintBookmarkBtn(btn, isBookmarked(surahNum, a, bmList));
+          btn.addEventListener('click', () => {
+            const current = readBookmarks();
+            const idx = current.findIndex((b) => b.s === surahNum && b.a === a);
+            if (idx === -1) {
+              current.push({ s: surahNum, a, ts: Date.now() });
+              writeBookmarks(current);
+              paintBookmarkBtn(btn, true);
+              showToast('تمت إضافة الإشارة');
+            } else {
+              current.splice(idx, 1);
+              writeBookmarks(current);
+              paintBookmarkBtn(btn, false);
+              showToast('تم حذف الإشارة');
+            }
+          });
+        });
+        // Memo placeholder
+        scope.querySelectorAll('.memo-placeholder:not([data-wired])').forEach((p) => {
+          p.setAttribute('data-wired', '1');
+          p.addEventListener('click', () => {
+            const card = p.closest('.ayah-card');
+            if (card) card.classList.add('memo-revealed');
+          });
+        });
+        // Tafsir tabs
+        scope.querySelectorAll('.tafsir-tab:not([data-wired])').forEach((btn) => {
+          btn.setAttribute('data-wired', '1');
+          btn.addEventListener('click', () => {
+            const ed = btn.getAttribute('data-tafsir-edition');
+            if (!ed) return;
+            currentEdition = ed;
+            localStorage.setItem('qr_tafsir_edition', ed);
+            loadActiveTafsirEdition();
+          });
+        });
+        // IntersectionObserver for last-read
+        if (lastReadIO) {
+          scope.querySelectorAll('.ayah-card:not([data-observed])').forEach((card) => {
+            card.setAttribute('data-observed', '1');
+            lastReadIO.observe(card);
+          });
+        }
+      }
+
+      // Initial wire: all 30 SSR'd cards
+      wireAyahCards();
+
+      // ── Pagination: load next 30 ayahs from /surah-data/<n>.json ────
+      const loadMoreBtn = document.getElementById('load-more-btn');
+      const loadMoreWrap = document.getElementById('load-more-wrap');
+      const lmShown = document.getElementById('lm-shown');
+      const lmLabel = document.getElementById('lm-label');
+      const BATCH_SIZE = 30;
+
+      if (loadMoreBtn) {
+        let loadedCount = document.querySelectorAll('#ayahs .ayah-card').length;
+        let cachedData = null;
+
+        async function fetchSurahData() {
+          if (cachedData) return cachedData;
+          const res = await fetch('/surah-data/' + surahNumber + '.json', { cache: 'force-cache' });
+          if (!res.ok) throw new Error('fetch failed: ' + res.status);
+          cachedData = await res.json();
+          return cachedData;
+        }
+
+        const arDigitsP = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
+        function escHtml(s) {
+          return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function renderAyahCardHTML(a) {
+          const num = arDigitsP(a.n);
+          const safeText = escHtml(a.t);
+          const safeTafsir = escHtml(a.tf || '');
+          const tafsirBlock = a.tf ? `
+            <div class="tafsir-block mt-4 hidden rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+              <div class="mb-2 flex flex-wrap items-center gap-1">
+                <button type="button" data-tafsir-edition="muyassar" class="tafsir-tab rounded-md border border-emerald-500 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300" aria-selected="true">الميسر</button>
+                <button type="button" data-tafsir-edition="jalalayn" class="tafsir-tab rounded-md border border-slate-700 bg-slate-800/40 px-2.5 py-1 text-xs text-slate-300 transition hover:border-emerald-500/60 hover:text-emerald-300" aria-selected="false">الجلالين</button>
+                <button type="button" data-tafsir-edition="baghawi" class="tafsir-tab rounded-md border border-slate-700 bg-slate-800/40 px-2.5 py-1 text-xs text-slate-300 transition hover:border-emerald-500/60 hover:text-emerald-300" aria-selected="false">البغوي</button>
+              </div>
+              <p class="tafsir-text tafsir-text-muyassar" data-tafsir-source="muyassar">${safeTafsir}</p>
+              <p class="tafsir-text tafsir-text-jalalayn hidden text-slate-300" data-tafsir-source="jalalayn" data-ayah-global="${a.g}"></p>
+              <p class="tafsir-text tafsir-text-baghawi hidden text-slate-300" data-tafsir-source="baghawi" data-ayah-global="${a.g}"></p>
+            </div>` : '';
+          return `
+            <article class="ayah-card rounded-2xl border border-slate-800 bg-slate-900/30 p-5 md:p-6" data-ayah="${a.n}" data-ayah-global="${a.g}" id="ayah-${a.n}">
+              <div class="mb-4 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                  <span class="flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-400 arabic-num">${num}</span>
+                  <span class="text-xs text-slate-500">جزء ${arDigitsP(a.j)} · صفحة ${arDigitsP(a.p)}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button class="play-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-emerald-400" data-ayah-global="${a.g}" data-ayah-local="${a.n}" title="تشغيل هذه الآية" aria-label="تشغيل الآية ${a.n}">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  </button>
+                  <button class="copy-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-emerald-400" data-ayah-text="${safeText}" data-ayah-local="${a.n}" title="نسخ الآية" aria-label="نسخ الآية ${a.n}">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                  <button class="share-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-sky-400" data-ayah-text="${safeText}" data-ayah-local="${a.n}" title="مشاركة كصورة" aria-label="مشاركة الآية ${a.n} كصورة">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  </button>
+                  <button class="bookmark-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-amber-400" data-ayah-local="${a.n}" title="إضافة إلى الإشارات" aria-label="إشارة مرجعية للآية ${a.n}" aria-pressed="false">
+                    <svg class="bookmark-icon h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  </button>
+                </div>
+              </div>
+              <p class="quran-text text-slate-50">${safeText} <span class="ayah-number">﴿${num}﴾</span></p>
+              <button type="button" class="memo-placeholder hidden w-full rounded-lg border border-dashed border-emerald-500/30 bg-emerald-950/20 py-8 text-center text-sm text-emerald-300/80 transition hover:bg-emerald-950/30" aria-label="إظهار الآية ${a.n}">اضغط للإظهار · آية ${num}</button>
+              ${tafsirBlock}
+            </article>`;
+        }
+
+        async function loadMore() {
+          try {
+            loadMoreBtn.disabled = true;
+            lmLabel.textContent = 'جارٍ التحميل…';
+            const data = await fetchSurahData();
+            const next = data.ayahs.slice(loadedCount, loadedCount + BATCH_SIZE);
+            const wrap = document.createElement('div');
+            wrap.innerHTML = next.map(renderAyahCardHTML).join('');
+            // Unwrap children into #ayahs
+            while (wrap.firstChild) ayahsSection.appendChild(wrap.firstChild);
+            loadedCount += next.length;
+            lmShown.textContent = arDigitsP(loadedCount);
+            const remaining = data.ayahs.length - loadedCount;
+            lmLabel.textContent = remaining > 0 ? `عرض ${arDigitsP(Math.min(BATCH_SIZE, remaining))} آية أخرى` : 'تم تحميل جميع الآيات';
+
+            // Wire new cards + sync state
+            wireAyahCards(ayahsSection);
+            applyTafsir(); // re-apply visibility (no-op if tafsirVisible=false)
+            if (currentEdition !== 'muyassar') loadActiveTafsirEdition();
+
+            if (loadedCount >= data.ayahs.length) {
+              loadMoreWrap.classList.add('hidden');
+            }
+            loadMoreBtn.disabled = false;
+          } catch (e) {
+            console.warn('load more failed:', e);
+            lmLabel.textContent = 'تعذّر التحميل · حاول مجدداً';
+            loadMoreBtn.disabled = false;
+          }
+        }
+
+        loadMoreBtn.addEventListener('click', loadMore);
+        // Exposed so the audio 'ended' handler + ?ayah= URL param can
+        // trigger batched loading when advancing past the loaded set.
+        loadMoreAyahs = loadMore;
+      }
     })();
   </script>
 </BaseLayout>
