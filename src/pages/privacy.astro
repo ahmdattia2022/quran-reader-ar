@@ -78,9 +78,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <li>تُحذف تلقائياً من السيرفر بعد <strong class="text-white">٣٠ يوماً</strong>.</li>
       </ul>
       <p class="mt-3">
-        يمكنك مراجعة كل السجلات المحفوظة محلياً في متصفحك من صفحة
-        <a href="/debug/" class="text-emerald-400 underline hover:text-emerald-300">debug</a>،
-        وتصديرها كملف JSON إذا أردت مشاركتها مع المطوّر لحل مشكلة ما.
+        السجلات المحفوظة محلياً في متصفحك يمكنك استعراضها من خلال
+        <strong class="text-white">DevTools</strong> (F12 → Console) عبر الأمر
+        <code class="rounded bg-slate-800/70 px-1 text-xs" dir="ltr">qrLogs.recent(20)</code>.
+        ولا يوجد صفحة عامة لها.
       </p>
 
       <h2 class="mt-8 text-2xl font-bold text-white">العمل بدون إنترنت (PWA)</h2>
