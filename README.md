@@ -1,6 +1,6 @@
 # Quran Reader (Arabic)
 
-> Fast, free, ad-free Arabic Quran reader. Static-generated, privacy-first, works offline.
+> Fast, free, ad-free Arabic Quran reader. Static-generated, privacy-first, works offline. Deploys on Cloudflare.
 
 **Live:** [quran-reader-ar.pages.dev](https://quran-reader-ar.pages.dev) · See [`docs/`](docs/) for architecture + deployment + runbook.
 
@@ -11,13 +11,21 @@
 - **Full Quran** — all 114 surahs, Uthmani script (`quran-uthmani` edition), Tafsir Al-Muyassar for every ayah.
 - **Mushaf page view** — 604 pages, faithful Madinah layout, keyboard navigation (←/→), with basmala + inline surah headers.
 - **Audio** — per-ayah MP3 from 11 reciters (Alafasy, Abdul Basit, Sudais, Hudhaify, Muaiqly, Minshawi, Husary, etc).
+- **Ayah range player** — pick a range (from–to), loop 1×/2×/3×/5×/10×/∞, playback speed 0.5×–2×. Built for memorization.
+- **Screen Wake Lock** — keeps the screen on during recitation (mobile-friendly).
+- **Multiple tafsirs** — Al-Muyassar (default, inline), plus Jalalayn + Baghawi lazy-loaded when the tab is opened.
+- **Ayah of the Day** — seeded daily ayah on the home page with tafsir + audio + share.
+- **Khatm tracker** — 30 / 60 / 90-day reading plan with daily ayah target, streak counter, and 7-day strip.
+- **Shareable ayah cards** — canvas-rendered PNG (Amiri Quran typography); copy/download/native-share.
 - **Prayer times + Qibla + Hijri** — 100% client-side via [Adhan-js](https://github.com/batoulapps/adhan). 50+ pre-loaded cities, DeviceOrientation compass on phones.
 - **Search** — full-text across all 6,236 ayahs, handles tashkeel/hamza normalization, highlights matches.
 - **Bookmarks + last-read** — per-ayah, with IntersectionObserver-based auto-tracking.
+- **Keyboard shortcuts** — `?` opens help, `/` focuses search, `K` play/pause, `T` toggle tafsir, `← →` prev/next surah.
 - **PWA** — installs to home screen, works offline after first visit.
 - **Opt-in cross-device sync** — Supabase magic-link auth. Default experience is still local-only; account is optional.
 - **Reading settings** — font size, line height, dark/night theme. Applied via CSS variables, persisted locally, synced if signed in.
 - **Content integrity** — SHA-256 hash of every data file published at [`/quran-hash.txt`](https://quran-reader-ar.pages.dev/quran-hash.txt) so users can verify text hasn't been tampered with.
+- **Content-Security-Policy** — strict origin allowlist; only Supabase, Axiom, Google Fonts, and `cdn.islamic.network` can talk to the client.
 - **Arabic-first** — UI, content, and accessibility labels all Arabic. RTL throughout.
 
 ## Stack

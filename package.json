@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "node scripts/gen-pwa-icons.mjs && node scripts/build-search-index.mjs && node scripts/compute-hash.mjs",
+    "prebuild": "node scripts/gen-pwa-icons.mjs && node scripts/build-search-index.mjs && node scripts/build-daily-ayahs.mjs && node scripts/compute-hash.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",

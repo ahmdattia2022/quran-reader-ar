@@ -13,7 +13,7 @@
  * Cache versioning: bump CACHE_VERSION to force all clients to refresh.
  */
 
-const CACHE_VERSION = 'qr-v1';
+const CACHE_VERSION = 'qr-v2';
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE = `${CACHE_VERSION}-precache`;
 
@@ -23,6 +23,7 @@ const PRECACHE_URLS = [
   '/mushaf/',
   '/juz/',
   '/awqat/',
+  '/khatm/',
   '/bookmarks/',
   '/search/',
   '/about/',

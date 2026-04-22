@@ -1,0 +1,317 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { surahIndex, arabicDigits, shortSurahName } from '../lib/quran.ts';
+
+const title = 'خطة ختمة القرآن - حدد الهدف اليومي وتابع تقدمك | القرآن الكريم';
+const description = 'حدد خطة ختمة (٣٠ أو ٦٠ أو ٩٠ يوم) وتابع تقدمك اليومي، سلسلة الأيام المتصلة، والآيات المطلوبة كل يوم. مع تذكير بالنطاق اليومي ورابط مباشر إلى الآيات.';
+
+// Emit the cumulative offsets so the client can translate (numberInQuran) → {surah, local}
+const cumStart: Array<{ n: number; s: number; ayahs: number; name: string }> = [];
+let acc = 0;
+for (const s of surahIndex) {
+  cumStart.push({ n: acc, s: s.number, ayahs: s.numberOfAyahs, name: shortSurahName(s.name) });
+  acc += s.numberOfAyahs;
+}
+const totalAyahs = acc; // 6236
+---
+<BaseLayout title={title} description={description} noindex={false}>
+  <section class="mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
+    <nav aria-label="breadcrumb" class="mb-6 text-sm">
+      <ol class="flex items-center gap-2 text-slate-400">
+        <li><a href="/" class="transition hover:text-emerald-400">الرئيسية</a></li>
+        <li class="text-slate-600">‹</li>
+        <li class="text-slate-300">خطة الختمة</li>
+      </ol>
+    </nav>
+
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-white md:text-4xl">خطة ختمة القرآن</h1>
+      <p class="mt-2 text-sm text-slate-400">
+        حدد المدة التي تريد أن تختم فيها القرآن. نحن نحسب لك نصيب كل يوم، ونتتبع تقدمك، ونحافظ على سلسلة أيامك المتصلة.
+      </p>
+    </header>
+
+    <!-- SETUP: plan picker (shown when no plan set) -->
+    <section id="khatm-setup" class="hidden rounded-2xl border border-emerald-500/30 bg-slate-900/50 p-6">
+      <h2 class="mb-4 text-lg font-bold text-white">اختر مدة الختمة</h2>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <button type="button" data-plan="30" class="plan-btn group rounded-xl border border-slate-700 bg-slate-900/40 p-4 text-center transition hover:border-emerald-500 hover:bg-emerald-500/5">
+          <p class="text-3xl font-bold text-emerald-400 arabic-num">٣٠</p>
+          <p class="mt-1 text-sm text-slate-300">يوماً</p>
+          <p class="mt-2 text-xs text-slate-500">ربع جزء يومياً</p>
+        </button>
+        <button type="button" data-plan="60" class="plan-btn group rounded-xl border border-slate-700 bg-slate-900/40 p-4 text-center transition hover:border-emerald-500 hover:bg-emerald-500/5">
+          <p class="text-3xl font-bold text-emerald-400 arabic-num">٦٠</p>
+          <p class="mt-1 text-sm text-slate-300">يوماً</p>
+          <p class="mt-2 text-xs text-slate-500">نصف جزء كل يومين</p>
+        </button>
+        <button type="button" data-plan="90" class="plan-btn group rounded-xl border border-slate-700 bg-slate-900/40 p-4 text-center transition hover:border-emerald-500 hover:bg-emerald-500/5">
+          <p class="text-3xl font-bold text-emerald-400 arabic-num">٩٠</p>
+          <p class="mt-1 text-sm text-slate-300">يوماً</p>
+          <p class="mt-2 text-xs text-slate-500">ثلاث صفحات يومياً</p>
+        </button>
+      </div>
+      <p class="mt-4 text-center text-xs text-slate-500">يمكنك تغيير الخطة في أي وقت</p>
+    </section>
+
+    <!-- PROGRESS: shown when plan exists -->
+    <section id="khatm-progress" class="hidden space-y-6">
+      <!-- Summary card -->
+      <div class="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 to-slate-900/60 p-5 md:p-6">
+        <div class="flex items-baseline justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-wider text-emerald-400">الخطة الحالية</p>
+            <p class="mt-1 text-2xl font-bold text-white">
+              ختمة في <span id="kh-plan" class="arabic-num">—</span> يوماً
+            </p>
+          </div>
+          <button id="kh-change-plan" type="button" class="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-400 transition hover:border-emerald-500/60 hover:text-emerald-400">تغيير</button>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="mt-5">
+          <div class="mb-2 flex items-center justify-between text-xs text-slate-400">
+            <span><span id="kh-days-done" class="arabic-num">—</span> / <span id="kh-days-total" class="arabic-num">—</span> يوم</span>
+            <span><span id="kh-pct" class="arabic-num">—</span>٪</span>
+          </div>
+          <div class="h-2.5 overflow-hidden rounded-full bg-slate-800">
+            <div id="kh-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Streak + stats -->
+        <dl class="mt-5 grid grid-cols-3 gap-3 text-center">
+          <div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+            <dt class="text-[11px] uppercase tracking-wider text-slate-500">السلسلة</dt>
+            <dd class="mt-1 text-xl font-bold text-amber-400 arabic-num">
+              <span id="kh-streak">٠</span>
+              <span class="text-xs font-normal text-slate-400">يوماً</span>
+            </dd>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+            <dt class="text-[11px] uppercase tracking-wider text-slate-500">اليوم الحالي</dt>
+            <dd class="mt-1 text-xl font-bold text-emerald-400 arabic-num" id="kh-current-day">٠</dd>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+            <dt class="text-[11px] uppercase tracking-wider text-slate-500">آيات يومياً</dt>
+            <dd class="mt-1 text-xl font-bold text-emerald-400 arabic-num" id="kh-daily-target">٠</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Today's reading -->
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 md:p-6">
+        <div class="mb-3 flex items-center justify-between">
+          <h3 class="text-lg font-bold text-white">قراءة اليوم</h3>
+          <span id="kh-today-date" class="text-xs text-slate-500">—</span>
+        </div>
+        <p class="text-sm text-slate-300">
+          من <span id="kh-start-label" class="font-semibold text-emerald-300">—</span>
+          إلى <span id="kh-end-label" class="font-semibold text-emerald-300">—</span>
+        </p>
+        <p class="mt-2 text-xs text-slate-500">
+          <span id="kh-range-count" class="arabic-num">٠</span> آية
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a id="kh-start-link" href="#" class="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            ابدأ القراءة
+          </a>
+          <button id="kh-mark-done" type="button" class="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="kh-mark-label">أكملت قراءة اليوم</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 7-day strip -->
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
+        <h3 class="mb-3 text-sm font-bold text-slate-300">آخر ٧ أيام</h3>
+        <div id="kh-week-strip" class="grid grid-cols-7 gap-2"></div>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="rounded-2xl border border-rose-500/20 bg-rose-950/10 p-5 text-center">
+        <button id="kh-reset" type="button" class="text-sm text-rose-400 transition hover:text-rose-300">
+          إعادة ضبط الخطة وبدء من جديد
+        </button>
+      </div>
+    </section>
+
+    <!-- Toast -->
+    <div id="kh-toast" class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-800 px-4 py-2.5 text-sm text-white opacity-0 shadow-xl ring-1 ring-emerald-500/30 transition-opacity duration-300 pointer-events-none"></div>
+  </section>
+
+  <script is:inline define:vars={{ cumStart, totalAyahs }}>
+    (function () {
+      const STORAGE_KEY = 'qr_khatm_v1';
+      const arDigits = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
+      const setup = document.getElementById('khatm-setup');
+      const progress = document.getElementById('khatm-progress');
+      const toast = document.getElementById('kh-toast');
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
+      }
+
+      function todayISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      function dayDiff(aISO, bISO) {
+        const a = new Date(aISO + 'T00:00:00');
+        const b = new Date(bISO + 'T00:00:00');
+        return Math.round((b - a) / 86400000);
+      }
+
+      function readState() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return null; }
+      }
+      function writeState(s) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+      }
+
+      // Locate a numberInQuran → {surah, local, name}
+      function locate(n) {
+        n = Math.max(1, Math.min(totalAyahs, n));
+        for (let i = cumStart.length - 1; i >= 0; i--) {
+          if (n > cumStart[i].n) return { surah: cumStart[i].s, local: n - cumStart[i].n, name: cumStart[i].name };
+        }
+        return { surah: 1, local: 1, name: cumStart[0].name };
+      }
+
+      function render() {
+        const s = readState();
+        if (!s || !s.plan) {
+          setup.classList.remove('hidden');
+          progress.classList.add('hidden');
+          return;
+        }
+        setup.classList.add('hidden');
+        progress.classList.remove('hidden');
+
+        const plan = Number(s.plan);
+        const today = todayISO();
+        const daysSinceStart = Math.max(0, dayDiff(s.startDate, today));
+        const currentDay = Math.min(plan, daysSinceStart + 1);
+        const dailyTarget = Math.ceil(totalAyahs / plan);
+
+        // Current-day ayah range (global ayah numbers, 1-based)
+        const startAyahGlobal = (currentDay - 1) * dailyTarget + 1;
+        const endAyahGlobal = Math.min(totalAyahs, currentDay * dailyTarget);
+
+        const startLoc = locate(startAyahGlobal);
+        const endLoc = locate(endAyahGlobal);
+
+        const daysDone = Number(s.completedDays || 0);
+        const pct = Math.round(Math.min(100, (daysDone / plan) * 100));
+
+        document.getElementById('kh-plan').textContent = arDigits(plan);
+        document.getElementById('kh-days-done').textContent = arDigits(daysDone);
+        document.getElementById('kh-days-total').textContent = arDigits(plan);
+        document.getElementById('kh-pct').textContent = arDigits(pct);
+        document.getElementById('kh-bar').style.width = pct + '%';
+        document.getElementById('kh-streak').textContent = arDigits(Number(s.streak || 0));
+        document.getElementById('kh-current-day').textContent = arDigits(currentDay);
+        document.getElementById('kh-daily-target').textContent = arDigits(dailyTarget);
+        document.getElementById('kh-today-date').textContent = today;
+        document.getElementById('kh-range-count').textContent = arDigits(endAyahGlobal - startAyahGlobal + 1);
+        document.getElementById('kh-start-label').textContent = `سورة ${startLoc.name} — الآية ${arDigits(startLoc.local)}`;
+        document.getElementById('kh-end-label').textContent = `سورة ${endLoc.name} — الآية ${arDigits(endLoc.local)}`;
+        document.getElementById('kh-start-link').setAttribute('href', `/surah/${startLoc.surah}/?ayah=${startLoc.local}`);
+
+        const markBtn = document.getElementById('kh-mark-done');
+        const markLabel = document.getElementById('kh-mark-label');
+        const alreadyDoneToday = s.lastCompletedDate === today;
+        markBtn.disabled = alreadyDoneToday;
+        markLabel.textContent = alreadyDoneToday ? 'تم إكمال اليوم ✓' : 'أكملت قراءة اليوم';
+        markBtn.classList.toggle('opacity-60', alreadyDoneToday);
+        markBtn.classList.toggle('cursor-not-allowed', alreadyDoneToday);
+
+        // 7-day strip: render as dots
+        const strip = document.getElementById('kh-week-strip');
+        strip.innerHTML = '';
+        const completedSet = new Set(s.history || []);
+        for (let i = 6; i >= 0; i--) {
+          const dt = new Date();
+          dt.setDate(dt.getDate() - i);
+          const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+          const done = completedSet.has(iso);
+          const dayName = dt.toLocaleDateString('ar-EG', { weekday: 'short' });
+          const cell = document.createElement('div');
+          cell.className = 'flex flex-col items-center gap-1.5 rounded-lg border p-2 text-center ' +
+            (done ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-slate-800 bg-slate-950/30');
+          cell.innerHTML = `
+            <span class="text-[10px] text-slate-500">${dayName}</span>
+            <span class="flex h-7 w-7 items-center justify-center rounded-full ${done ? 'bg-emerald-500 text-slate-900' : 'bg-slate-800 text-slate-500'} text-xs font-bold">
+              ${done ? '✓' : arDigits(dt.getDate())}
+            </span>
+          `;
+          strip.appendChild(cell);
+        }
+      }
+
+      function startPlan(planDays) {
+        const today = todayISO();
+        writeState({
+          plan: planDays,
+          startDate: today,
+          lastCompletedDate: null,
+          completedDays: 0,
+          streak: 0,
+          history: [],
+        });
+        showToast('بدأنا الخطة — بالتوفيق');
+        render();
+      }
+
+      document.querySelectorAll('.plan-btn').forEach((btn) => {
+        btn.addEventListener('click', () => startPlan(Number(btn.dataset.plan)));
+      });
+
+      document.getElementById('kh-change-plan').addEventListener('click', () => {
+        if (!confirm('سيتم الحفاظ على تاريخ الإكمال والسلسلة. متأكد من تغيير المدة؟')) return;
+        // Back to setup, but keep history/streak; new plan resets startDate
+        const s = readState();
+        if (s) {
+          writeState({ ...s, plan: null });
+        }
+        render();
+      });
+
+      document.getElementById('kh-mark-done').addEventListener('click', () => {
+        const s = readState();
+        if (!s) return;
+        const today = todayISO();
+        if (s.lastCompletedDate === today) return;
+        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayISO = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+        const continuous = s.lastCompletedDate === yesterdayISO;
+        const newStreak = continuous ? (Number(s.streak || 0) + 1) : 1;
+        const history = Array.isArray(s.history) ? s.history : [];
+        if (!history.includes(today)) history.push(today);
+        writeState({
+          ...s,
+          lastCompletedDate: today,
+          completedDays: Number(s.completedDays || 0) + 1,
+          streak: newStreak,
+          history: history.slice(-365), // cap to one year
+        });
+        showToast('بارك الله فيك · +١ سلسلة');
+        render();
+      });
+
+      document.getElementById('kh-reset').addEventListener('click', () => {
+        if (!confirm('سيتم حذف كل تقدمك في الخطة. متأكد؟')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        showToast('تمت إعادة الضبط');
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</BaseLayout>

@@ -144,6 +144,59 @@ const jsonLd = {
             </svg>
             <span>إظهار التفسير</span>
           </button>
+
+          <button
+            id="toggle-range-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 transition hover:border-emerald-500 hover:text-emerald-400"
+            aria-pressed="false"
+            aria-expanded="false"
+            aria-controls="range-panel"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 21V11l6-4v14M4 21l16-4M4 11l16-4"/>
+            </svg>
+            <span>نطاق التلاوة</span>
+          </button>
+        </div>
+
+        <!-- Range / loop / speed panel -->
+        <div id="range-panel" class="mt-4 hidden border-t border-slate-800 pt-4">
+          <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+            <div>
+              <label for="range-from" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400">من الآية</label>
+              <input id="range-from" type="number" min="1" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+            </div>
+            <div>
+              <label for="range-to" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400">إلى الآية</label>
+              <input id="range-to" type="number" min="1" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+            </div>
+            <div>
+              <label for="range-loop" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400">التكرار</label>
+              <select id="range-loop" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                <option value="1">مرة واحدة</option>
+                <option value="2">٢ مرات</option>
+                <option value="3">٣ مرات</option>
+                <option value="5">٥ مرات</option>
+                <option value="10">١٠ مرات</option>
+                <option value="0">∞ متواصل</option>
+              </select>
+            </div>
+            <div>
+              <label for="range-speed" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400">السرعة</label>
+              <select id="range-speed" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                <option value="0.5">٠٫٥×</option>
+                <option value="0.75">٠٫٧٥×</option>
+                <option value="1" selected>١×</option>
+                <option value="1.25">١٫٢٥×</option>
+                <option value="1.5">١٫٥×</option>
+                <option value="2">٢×</option>
+              </select>
+            </div>
+          </div>
+          <p id="range-hint" class="mt-3 text-xs text-slate-500">
+            اضبط النطاق والتكرار ثم اضغط «تشغيل السورة» للبدء. النطاق الافتراضي هو السورة كاملة بدون تكرار.
+          </p>
         </div>
       </div>
     </div>
@@ -197,6 +250,17 @@ const jsonLd = {
                 </svg>
               </button>
               <button
+                class="share-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-sky-400"
+                data-ayah-text={a.text}
+                data-ayah-local={a.numberInSurah}
+                title="مشاركة كصورة"
+                aria-label={`مشاركة الآية ${a.numberInSurah} كصورة`}
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </button>
+              <button
                 class="bookmark-ayah-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-amber-400"
                 data-ayah-local={a.numberInSurah}
                 title="إضافة إلى الإشارات"
@@ -219,10 +283,14 @@ const jsonLd = {
           <!-- Tafsir (hidden by default, toggled on) -->
           {a.tafsir && (
             <div class="tafsir-block mt-4 hidden rounded-lg border border-slate-800 bg-slate-950/50 p-4">
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                التفسير الميسر
-              </p>
-              <p class="tafsir-text">{a.tafsir}</p>
+              <div class="mb-2 flex flex-wrap items-center gap-1">
+                <button type="button" data-tafsir-edition="muyassar" class="tafsir-tab rounded-md border border-emerald-500 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300" aria-selected="true">الميسر</button>
+                <button type="button" data-tafsir-edition="jalalayn" class="tafsir-tab rounded-md border border-slate-700 bg-slate-800/40 px-2.5 py-1 text-xs text-slate-300 transition hover:border-emerald-500/60 hover:text-emerald-300" aria-selected="false">الجلالين</button>
+                <button type="button" data-tafsir-edition="baghawi" class="tafsir-tab rounded-md border border-slate-700 bg-slate-800/40 px-2.5 py-1 text-xs text-slate-300 transition hover:border-emerald-500/60 hover:text-emerald-300" aria-selected="false">البغوي</button>
+              </div>
+              <p class="tafsir-text tafsir-text-muyassar" data-tafsir-source="muyassar">{a.tafsir}</p>
+              <p class="tafsir-text tafsir-text-jalalayn hidden text-slate-300" data-tafsir-source="jalalayn" data-ayah-global={a.numberInQuran}></p>
+              <p class="tafsir-text tafsir-text-baghawi hidden text-slate-300" data-tafsir-source="baghawi" data-ayah-global={a.numberInQuran}></p>
             </div>
           )}
         </article>
@@ -258,7 +326,49 @@ const jsonLd = {
   <!-- Toast notification for copy -->
   <div id="toast" class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-800 px-4 py-2.5 text-sm text-white opacity-0 shadow-xl ring-1 ring-emerald-500/30 transition-opacity duration-300 pointer-events-none"></div>
 
-  <script is:inline define:vars={{ totalAyahs: surah.numberOfAyahs, firstGlobal: ayahs[0].numberInQuran }}>
+  <!-- Share modal (canvas-rendered PNG of the ayah) -->
+  <div id="share-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl sm:p-6">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <h3 id="share-title" class="text-lg font-bold text-white">مشاركة الآية كصورة</h3>
+        <button id="share-close" type="button" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="إغلاق">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+        <canvas id="share-canvas" width="1200" height="630" class="block w-full"></canvas>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button id="share-download" type="button" class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          تنزيل الصورة
+        </button>
+        <button id="share-copy-img" type="button" class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-emerald-500 hover:text-emerald-400">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          نسخ كصورة
+        </button>
+        <button id="share-native" type="button" class="hidden inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-emerald-500 hover:text-emerald-400">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          مشاركة
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{
+    totalAyahs: surah.numberOfAyahs,
+    firstGlobal: ayahs[0].numberInQuran,
+    surahName: shortName,
+    surahNumber: surah.number,
+    prevSurahHref: prev ? `/surah/${prev.number}` : null,
+    nextSurahHref: next ? `/surah/${next.number}` : null,
+  }}>
     (function () {
       const audio = document.getElementById('player');
       const playBtn = document.getElementById('play-all-btn');
@@ -295,6 +405,80 @@ const jsonLd = {
       let currentAyahLocal = 0; // 1-based; 0 = not playing
       let playingAll = false;
 
+      // ── Range / loop / speed panel state ──────────────────────────
+      const rangeBtn = document.getElementById('toggle-range-btn');
+      const rangePanel = document.getElementById('range-panel');
+      const rangeFromEl = document.getElementById('range-from');
+      const rangeToEl = document.getElementById('range-to');
+      const rangeLoopEl = document.getElementById('range-loop');
+      const rangeSpeedEl = document.getElementById('range-speed');
+      const rangeHintEl = document.getElementById('range-hint');
+
+      const rangeStorageKey = 'qr_range_v1';
+      const defaultRange = { from: 1, to: totalAyahs, loop: 1, speed: 1 };
+      let range = Object.assign({}, defaultRange);
+      try {
+        const saved = JSON.parse(localStorage.getItem(rangeStorageKey) || 'null');
+        if (saved && typeof saved === 'object') {
+          range.from = Math.max(1, Math.min(totalAyahs, Number(saved.from) || 1));
+          range.to = Math.max(range.from, Math.min(totalAyahs, Number(saved.to) || totalAyahs));
+          range.loop = saved.loop === 0 ? 0 : Math.max(1, Number(saved.loop) || 1);
+          range.speed = [0.5, 0.75, 1, 1.25, 1.5, 2].includes(Number(saved.speed)) ? Number(saved.speed) : 1;
+        }
+      } catch {}
+
+      rangeFromEl.min = '1'; rangeFromEl.max = String(totalAyahs); rangeFromEl.value = String(range.from);
+      rangeToEl.min = '1'; rangeToEl.max = String(totalAyahs); rangeToEl.value = String(range.to);
+      rangeLoopEl.value = String(range.loop);
+      rangeSpeedEl.value = String(range.speed);
+
+      let loopsRemaining = 0; // set when playback starts
+
+      function saveRange() {
+        try { localStorage.setItem(rangeStorageKey, JSON.stringify(range)); } catch {}
+      }
+      function updateRangeHint() {
+        const isDefault = range.from === 1 && range.to === totalAyahs && range.loop === 1 && range.speed === 1;
+        rangeHintEl.textContent = isDefault
+          ? 'اضبط النطاق والتكرار ثم اضغط «تشغيل السورة» للبدء. النطاق الافتراضي هو السورة كاملة بدون تكرار.'
+          : `سيتم تشغيل الآيات ${range.from}–${range.to} · ${range.loop === 0 ? 'تكرار متواصل' : range.loop + ' مرة'} · ${range.speed}×`;
+      }
+      updateRangeHint();
+
+      rangeBtn.addEventListener('click', () => {
+        const open = rangePanel.classList.toggle('hidden') === false;
+        rangeBtn.setAttribute('aria-expanded', String(open));
+        rangeBtn.setAttribute('aria-pressed', String(open));
+        if (open) {
+          rangeBtn.classList.add('border-emerald-500', 'text-emerald-400');
+        } else {
+          rangeBtn.classList.remove('border-emerald-500', 'text-emerald-400');
+        }
+      });
+
+      rangeFromEl.addEventListener('change', () => {
+        const v = Math.max(1, Math.min(totalAyahs, Number(rangeFromEl.value) || 1));
+        range.from = v;
+        if (range.to < v) { range.to = v; rangeToEl.value = String(v); }
+        rangeFromEl.value = String(v);
+        saveRange(); updateRangeHint();
+      });
+      rangeToEl.addEventListener('change', () => {
+        const v = Math.max(range.from, Math.min(totalAyahs, Number(rangeToEl.value) || totalAyahs));
+        range.to = v;
+        rangeToEl.value = String(v);
+        saveRange(); updateRangeHint();
+      });
+      rangeLoopEl.addEventListener('change', () => {
+        range.loop = Number(rangeLoopEl.value);
+        saveRange(); updateRangeHint();
+      });
+      rangeSpeedEl.addEventListener('change', () => {
+        range.speed = Number(rangeSpeedEl.value) || 1;
+        if (audio.playbackRate !== range.speed) audio.playbackRate = range.speed;
+        saveRange(); updateRangeHint();
+      });
+
       function setPlayingUI(isPlaying) {
         if (isPlaying) {
           playIcon.classList.add('hidden');
@@ -321,6 +505,7 @@ const jsonLd = {
         currentAyahLocal = local;
         const globalNum = firstGlobal + (local - 1);
         audio.src = audioUrlFor(globalNum, currentReciter);
+        audio.playbackRate = range.speed;
         audio.play().catch((e) => console.warn('Audio play failed:', e));
         highlightAyah(local);
         setPlayingUI(true);
@@ -332,13 +517,30 @@ const jsonLd = {
       }
 
       audio.addEventListener('ended', () => {
-        if (playingAll && currentAyahLocal < totalAyahs) {
-          playAyah(currentAyahLocal + 1);
-        } else {
-          playingAll = false;
+        if (!playingAll) {
           setPlayingUI(false);
           highlightAyah(0);
+          return;
         }
+        // Advance within the range, then handle loop
+        if (currentAyahLocal < range.to) {
+          playAyah(currentAyahLocal + 1);
+          return;
+        }
+        // End of range reached — loop?
+        if (loopsRemaining === 0 /* infinite */) {
+          playAyah(range.from);
+          return;
+        }
+        if (loopsRemaining > 1) {
+          loopsRemaining -= 1;
+          playAyah(range.from);
+          return;
+        }
+        // Done
+        playingAll = false;
+        setPlayingUI(false);
+        highlightAyah(0);
       });
 
       audio.addEventListener('pause', () => {
@@ -347,6 +549,29 @@ const jsonLd = {
       });
 
       audio.addEventListener('play', () => setPlayingUI(true));
+
+      // ── Screen Wake Lock (keep screen on while reciting) ────────────
+      let wakeLock = null;
+      async function acquireWakeLock() {
+        try {
+          if ('wakeLock' in navigator && !wakeLock) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => { wakeLock = null; });
+          }
+        } catch (e) { /* permission denied or unsupported — no-op */ }
+      }
+      function releaseWakeLock() {
+        if (wakeLock) { try { wakeLock.release(); } catch {} wakeLock = null; }
+      }
+      audio.addEventListener('play', acquireWakeLock);
+      audio.addEventListener('pause', releaseWakeLock);
+      audio.addEventListener('ended', releaseWakeLock);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && audio && !audio.paused && !audio.ended) {
+          // Browsers auto-release when hidden; re-acquire on return
+          acquireWakeLock();
+        }
+      });
 
       playBtn.addEventListener('click', () => {
         if (!audio.paused && !audio.ended) {
@@ -360,7 +585,11 @@ const jsonLd = {
           return;
         }
         playingAll = true;
-        playAyah(1);
+        // Snap range to valid bounds, then start
+        range.from = Math.max(1, Math.min(totalAyahs, range.from));
+        range.to = Math.max(range.from, Math.min(totalAyahs, range.to));
+        loopsRemaining = range.loop; // 0 = infinite; N = total plays
+        playAyah(range.from);
       });
 
       reciterSelect.addEventListener('change', (e) => {
@@ -498,6 +727,190 @@ const jsonLd = {
         document.querySelectorAll('.ayah-card').forEach((el) => io.observe(el));
       })();
 
+      // ── Share ayah as image ───────────────────────────────────────
+      const shareModal = document.getElementById('share-modal');
+      const shareCanvas = document.getElementById('share-canvas');
+      const shareClose = document.getElementById('share-close');
+      const shareDownload = document.getElementById('share-download');
+      const shareCopyImg = document.getElementById('share-copy-img');
+      const shareNative = document.getElementById('share-native');
+      const arDigitsShare = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
+
+      if ('canShare' in navigator && typeof navigator.canShare === 'function') {
+        // Only show native share on devices that actually support file sharing
+        try {
+          const probe = new File([new Blob([''], { type: 'image/png' })], 'probe.png', { type: 'image/png' });
+          if (navigator.canShare({ files: [probe] })) shareNative.classList.remove('hidden');
+        } catch {}
+      }
+
+      function openShareModal() {
+        shareModal.classList.remove('hidden');
+        shareModal.classList.add('flex');
+        shareModal.setAttribute('aria-hidden', 'false');
+      }
+      function closeShareModal() {
+        shareModal.classList.add('hidden');
+        shareModal.classList.remove('flex');
+        shareModal.setAttribute('aria-hidden', 'true');
+      }
+      shareClose.addEventListener('click', closeShareModal);
+      shareModal.addEventListener('click', (e) => { if (e.target === shareModal) closeShareModal(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !shareModal.classList.contains('hidden')) closeShareModal();
+      });
+
+      // Wrap Arabic text to fit width on canvas
+      function wrapArabicText(ctx, text, maxWidth) {
+        const words = text.split(/\s+/);
+        const lines = [];
+        let line = '';
+        for (const w of words) {
+          const test = line ? line + ' ' + w : w;
+          if (ctx.measureText(test).width <= maxWidth || !line) {
+            line = test;
+          } else {
+            lines.push(line);
+            line = w;
+          }
+        }
+        if (line) lines.push(line);
+        return lines;
+      }
+
+      async function renderShareCanvas(ayahText, ayahNumber) {
+        const ctx = shareCanvas.getContext('2d');
+        const W = shareCanvas.width;
+        const H = shareCanvas.height;
+
+        // Wait for Amiri to be loaded so the text renders in the right face
+        try {
+          if (document.fonts && document.fonts.load) {
+            await document.fonts.load('700 56px Amiri');
+            await document.fonts.load('600 28px "Noto Sans Arabic"');
+          }
+        } catch {}
+
+        // Gradient background (emerald → slate)
+        const grad = ctx.createLinearGradient(0, 0, W, H);
+        grad.addColorStop(0, '#022c22');
+        grad.addColorStop(0.55, '#0b1220');
+        grad.addColorStop(1, '#020617');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Soft emerald glow
+        const glow = ctx.createRadialGradient(W * 0.5, H * 0.1, 40, W * 0.5, H * 0.1, W * 0.9);
+        glow.addColorStop(0, 'rgba(16, 185, 129, 0.30)');
+        glow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        // Ornamental border (inner rounded frame)
+        const pad = 48;
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+        ctx.lineWidth = 2;
+        const r = 24;
+        ctx.beginPath();
+        ctx.moveTo(pad + r, pad);
+        ctx.lineTo(W - pad - r, pad);
+        ctx.arcTo(W - pad, pad, W - pad, pad + r, r);
+        ctx.lineTo(W - pad, H - pad - r);
+        ctx.arcTo(W - pad, H - pad, W - pad - r, H - pad, r);
+        ctx.lineTo(pad + r, H - pad);
+        ctx.arcTo(pad, H - pad, pad, H - pad - r, r);
+        ctx.lineTo(pad, pad + r);
+        ctx.arcTo(pad, pad, pad + r, pad, r);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Ayah text (Amiri, centered)
+        ctx.direction = 'rtl';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#f8fafc';
+
+        const decorated = ayahText + ' ﴿' + arDigitsShare(ayahNumber) + '﴾';
+        let fontSize = 60;
+        ctx.font = `700 ${fontSize}px Amiri, "Amiri Quran", "Times New Roman", serif`;
+        let lines = wrapArabicText(ctx, decorated, W - pad * 2 - 40);
+        while (lines.length > 6 && fontSize > 34) {
+          fontSize -= 4;
+          ctx.font = `700 ${fontSize}px Amiri, "Amiri Quran", "Times New Roman", serif`;
+          lines = wrapArabicText(ctx, decorated, W - pad * 2 - 40);
+        }
+
+        const lineHeight = fontSize * 1.55;
+        const textBlockH = lines.length * lineHeight;
+        const cy = H / 2 - textBlockH / 2 + lineHeight / 2 - 14;
+        for (let i = 0; i < lines.length; i++) {
+          ctx.fillText(lines[i], W / 2, cy + i * lineHeight);
+        }
+
+        // Surah label (bottom)
+        ctx.font = '600 28px "Noto Sans Arabic", sans-serif';
+        ctx.fillStyle = '#6ee7b7';
+        ctx.fillText(`سورة ${surahName} — الآية ${arDigitsShare(ayahNumber)}`, W / 2, H - pad - 28);
+
+        // Watermark (tiny, bottom)
+        ctx.font = '500 16px "Noto Sans Arabic", sans-serif';
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
+        ctx.fillText('quran-reader-ar.pages.dev', W / 2, H - pad + 4);
+      }
+
+      function canvasToBlob() {
+        return new Promise((resolve) => shareCanvas.toBlob((b) => resolve(b), 'image/png'));
+      }
+
+      document.querySelectorAll('.share-ayah-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const ayahText = btn.dataset.ayahText || '';
+          const ayahNum = Number(btn.dataset.ayahLocal);
+          openShareModal();
+          await renderShareCanvas(ayahText, ayahNum);
+        });
+      });
+
+      shareDownload.addEventListener('click', async () => {
+        const blob = await canvasToBlob();
+        if (!blob) { showToast('تعذّر إنشاء الصورة'); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `quran-${surahNumber}-ayah.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        showToast('تم التنزيل');
+      });
+
+      shareCopyImg.addEventListener('click', async () => {
+        try {
+          const blob = await canvasToBlob();
+          if (!blob) throw new Error('no blob');
+          if (!('ClipboardItem' in window) || !navigator.clipboard?.write) {
+            showToast('المتصفح لا يدعم نسخ الصور — استخدم التنزيل');
+            return;
+          }
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          showToast('تم نسخ الصورة');
+        } catch (e) {
+          showToast('تعذّر النسخ — استخدم التنزيل');
+        }
+      });
+
+      shareNative.addEventListener('click', async () => {
+        try {
+          const blob = await canvasToBlob();
+          if (!blob) return;
+          const file = new File([blob], `quran-${surahNumber}-ayah.png`, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: `سورة ${surahName}`, text: `من سورة ${surahName}` });
+          }
+        } catch {}
+      });
+
       // Tafsir toggle
       let tafsirVisible = localStorage.getItem('qr_tafsir') === 'true';
       function applyTafsir() {
@@ -511,12 +924,94 @@ const jsonLd = {
         } else {
           tafsirBtn.classList.remove('border-emerald-500', 'text-emerald-400');
         }
+        if (tafsirVisible) loadActiveTafsirEdition();
       }
       applyTafsir();
       tafsirBtn.addEventListener('click', () => {
         tafsirVisible = !tafsirVisible;
         localStorage.setItem('qr_tafsir', String(tafsirVisible));
         applyTafsir();
+      });
+
+      // ── Tafsir editions (muyassar default, jalalayn + baghawi lazy) ──
+      const TAFSIR_CACHE = {};
+      let currentEdition = localStorage.getItem('qr_tafsir_edition') || 'muyassar';
+
+      async function fetchEdition(edition) {
+        if (edition === 'muyassar') return null;
+        if (TAFSIR_CACHE[edition]) return TAFSIR_CACHE[edition];
+        const url = '/tafsirs/ar.' + edition + '.json';
+        const res = await fetch(url, { cache: 'force-cache' });
+        if (!res.ok) throw new Error('fetch failed: ' + res.status);
+        const data = await res.json();
+        TAFSIR_CACHE[edition] = data;
+        return data;
+      }
+
+      function paintTabs(edition) {
+        document.querySelectorAll('.tafsir-tab').forEach((btn) => {
+          const ed = btn.getAttribute('data-tafsir-edition');
+          const active = ed === edition;
+          btn.setAttribute('aria-selected', String(active));
+          if (active) {
+            btn.classList.remove('border-slate-700', 'bg-slate-800/40', 'text-slate-300');
+            btn.classList.add('border-emerald-500', 'bg-emerald-500/10', 'text-emerald-300');
+          } else {
+            btn.classList.add('border-slate-700', 'bg-slate-800/40', 'text-slate-300');
+            btn.classList.remove('border-emerald-500', 'bg-emerald-500/10', 'text-emerald-300');
+          }
+        });
+        // Show/hide tafsir text blocks
+        document.querySelectorAll('.tafsir-text').forEach((el) => {
+          const src = el.getAttribute('data-tafsir-source');
+          el.classList.toggle('hidden', src !== edition);
+        });
+      }
+
+      async function loadActiveTafsirEdition() {
+        paintTabs(currentEdition);
+        if (currentEdition === 'muyassar') return;
+        // Show a tiny loading hint in all target blocks first
+        document.querySelectorAll('.tafsir-text-' + currentEdition).forEach((el) => {
+          if (!el.textContent) el.textContent = '…';
+        });
+        try {
+          const data = await fetchEdition(currentEdition);
+          if (!data || !Array.isArray(data.texts)) return;
+          document.querySelectorAll('.tafsir-text-' + currentEdition).forEach((el) => {
+            const n = Number(el.getAttribute('data-ayah-global'));
+            const t = data.texts[n - 1] || '';
+            el.textContent = t || 'لا يوجد تفسير لهذه الآية في هذه الطبعة.';
+          });
+        } catch (e) {
+          document.querySelectorAll('.tafsir-text-' + currentEdition).forEach((el) => {
+            el.textContent = 'تعذّر تحميل التفسير. تحقق من الاتصال وحاول مجدداً.';
+          });
+        }
+      }
+
+      document.querySelectorAll('.tafsir-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const ed = btn.getAttribute('data-tafsir-edition');
+          if (!ed) return;
+          currentEdition = ed;
+          localStorage.setItem('qr_tafsir_edition', ed);
+          loadActiveTafsirEdition();
+        });
+      });
+
+      if (tafsirVisible) loadActiveTafsirEdition();
+
+      // ── Page-level keyboard shortcuts ──────────────────────────────
+      document.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        // RTL: right arrow = "previous" in reading direction for Arabic; map accordingly
+        if (e.key === 'ArrowRight' && prevSurahHref) { e.preventDefault(); location.href = prevSurahHref; return; }
+        if (e.key === 'ArrowLeft' && nextSurahHref) { e.preventDefault(); location.href = nextSurahHref; return; }
+        if (e.key === 'k' || e.key === 'K') { e.preventDefault(); playBtn.click(); return; }
+        if (e.key === 't' || e.key === 'T') { e.preventDefault(); tafsirBtn.click(); return; }
       });
     })();
   </script>

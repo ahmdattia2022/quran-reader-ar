@@ -1,0 +1,133 @@
+---
+// Keyboard shortcuts help modal. Opens on `?` or `Shift+/`.
+// Triggered globally; lists all shortcuts understood across the app.
+---
+<button
+  id="kbd-help-trigger"
+  type="button"
+  class="fixed bottom-4 left-4 z-40 hidden h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-slate-900/90 text-slate-300 shadow-lg backdrop-blur transition hover:border-emerald-500 hover:text-emerald-400 sm:flex"
+  aria-label="اختصارات لوحة المفاتيح"
+  title="اختصارات (؟)"
+>
+  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
+    <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M10 14h12"/>
+  </svg>
+</button>
+
+<div
+  id="kbd-help-modal"
+  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="true"
+  aria-labelledby="kbd-help-title"
+>
+  <div class="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl sm:p-6">
+    <div class="mb-4 flex items-center justify-between gap-3">
+      <h3 id="kbd-help-title" class="text-lg font-bold text-white">اختصارات لوحة المفاتيح</h3>
+      <button id="kbd-help-close" type="button" class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white" aria-label="إغلاق">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <ul class="space-y-3 text-sm">
+      <li class="flex items-center justify-between gap-3">
+        <span class="text-slate-300">صفحة المصحف السابقة / التالية</span>
+        <span class="flex items-center gap-1">
+          <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">←</kbd>
+          <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">→</kbd>
+        </span>
+      </li>
+      <li class="flex items-center justify-between gap-3">
+        <span class="text-slate-300">السورة السابقة / التالية</span>
+        <span class="flex items-center gap-1">
+          <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">←</kbd>
+          <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">→</kbd>
+        </span>
+      </li>
+      <li class="flex items-center justify-between gap-3">
+        <span class="text-slate-300">تشغيل / إيقاف السورة</span>
+        <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">K</kbd>
+      </li>
+      <li class="flex items-center justify-between gap-3">
+        <span class="text-slate-300">إظهار / إخفاء التفسير</span>
+        <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">T</kbd>
+      </li>
+      <li class="flex items-center justify-between gap-3">
+        <span class="text-slate-300">الذهاب إلى البحث</span>
+        <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">/</kbd>
+      </li>
+      <li class="flex items-center justify-between gap-3">
+        <span class="text-slate-300">إغلاق أي نافذة منبثقة</span>
+        <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">Esc</kbd>
+      </li>
+      <li class="flex items-center justify-between gap-3">
+        <span class="text-slate-300">إظهار هذه القائمة</span>
+        <kbd class="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-200">?</kbd>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    const modal = document.getElementById('kbd-help-modal');
+    const closeBtn = document.getElementById('kbd-help-close');
+    const trigger = document.getElementById('kbd-help-trigger');
+    if (!modal) return;
+
+    // Show the floating trigger button only after we know the device has
+    // a physical keyboard-ish form factor (lg breakpoint is a reasonable proxy)
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      trigger.classList.remove('hidden');
+      trigger.classList.add('flex');
+    }
+
+    function open() {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+    function close() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    trigger.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+    function isTyping(el) {
+      if (!el) return false;
+      const tag = (el.tagName || '').toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (!modal.classList.contains('hidden')) close();
+        return;
+      }
+      if (isTyping(e.target)) return;
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        e.preventDefault();
+        if (modal.classList.contains('hidden')) open(); else close();
+        return;
+      }
+      // "/" (without shift) focuses the site search
+      if (e.key === '/' && !e.shiftKey) {
+        const search = document.getElementById('surah-search');
+        if (search) { e.preventDefault(); search.focus(); }
+        else {
+          // Navigate to /search/
+          if (location.pathname !== '/search/' && location.pathname !== '/search') {
+            e.preventDefault();
+            location.href = '/search/';
+          }
+        }
+      }
+    });
+  })();
+</script>

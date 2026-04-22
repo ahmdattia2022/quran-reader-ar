@@ -4,6 +4,7 @@ import ReadingSettings from '../components/ReadingSettings.astro';
 import PWAInstaller from '../components/PWAInstaller.astro';
 import AuthModal from '../components/AuthModal.astro';
 import SyncBadge from '../components/SyncBadge.astro';
+import KeyboardHelp from '../components/KeyboardHelp.astro';
 
 export interface Props {
   title: string;
@@ -142,6 +143,9 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
   <!-- Sync badge (only shows when signed in) + auth modal (hidden unless opened) -->
   <SyncBadge />
   <AuthModal />
+
+  <!-- Global keyboard shortcuts (? to open help modal, / focuses search, Esc closes) -->
+  <KeyboardHelp />
 
   <!-- Start the sync engine (no-op if Supabase env vars aren't set) -->
   <script>
