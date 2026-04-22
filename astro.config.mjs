@@ -9,6 +9,7 @@ export default defineConfig({
   integrations: [
     sitemap({
       i18n: { defaultLocale: 'ar', locales: { ar: 'ar' } },
+      filter: (page) => !page.includes('/debug') && !page.includes('/auth/'),
     }),
   ],
   vite: {

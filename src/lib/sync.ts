@@ -20,6 +20,7 @@
  * is sent to the network and the sync badge stays hidden.
  */
 import { getSupabase, isConfigured } from './supabase';
+import { logger } from './logger';
 
 export type SyncKey = 'bookmarks' | 'last_read' | 'reading_settings' | 'prayer_settings';
 
@@ -60,6 +61,7 @@ function writeRaw(lsKey: string, value: string) {
 export type SyncStatus = 'offline' | 'signed_out' | 'syncing' | 'synced' | 'error';
 let currentStatus: SyncStatus = 'signed_out';
 function setStatus(s: SyncStatus) {
+  if (s !== currentStatus) logger.info('sync', `status → ${s}`, { from: currentStatus });
   currentStatus = s;
   window.dispatchEvent(new CustomEvent('qr:sync-status', { detail: { status: s } }));
 }
@@ -129,21 +131,35 @@ function installLocalStorageInterceptor() {
  * timestamps locally so enabling sync later doesn't lose data.
  */
 export function initSync() {
-  try { installLocalStorageInterceptor(); } catch {}
+  logger.info('sync', 'initSync called', { configured: isConfigured() });
+  try { installLocalStorageInterceptor(); } catch (e: any) {
+    logger.warn('sync', 'interceptor install failed', { err: e?.message });
+  }
 
   if (!isConfigured()) { setStatus('signed_out'); return; }
   const sb = getSupabase();
   if (!sb) { setStatus('signed_out'); return; }
 
   // Online/offline tracking
-  const markOffline = () => { if (currentStatus !== 'signed_out') setStatus('offline'); };
-  const markBackOnline = () => { void tryReconcileFromSession(); };
+  const markOffline = () => {
+    logger.info('sync', 'browser went offline');
+    if (currentStatus !== 'signed_out') setStatus('offline');
+  };
+  const markBackOnline = () => {
+    logger.info('sync', 'browser back online');
+    void tryReconcileFromSession();
+  };
   window.addEventListener('offline', markOffline);
   window.addEventListener('online', markBackOnline);
 
   // Auth state — only reconcile on genuine sign-in events, NOT on every
   // token refresh (which happens hourly and would burn egress).
   sb.auth.onAuthStateChange((event, session) => {
+    logger.info('auth', `event: ${event}`, {
+      hasUser: Boolean(session?.user),
+      email: session?.user?.email,
+      userId: session?.user?.id,
+    });
     if (event === 'SIGNED_IN' && session?.user) {
       void reconcile(session.user.id);
     } else if (event === 'SIGNED_OUT') {
@@ -155,7 +171,10 @@ export function initSync() {
   });
 
   // Debounced push on any local change
-  window.addEventListener('qr:data-changed', () => { schedulePush(); });
+  window.addEventListener('qr:data-changed', (e: any) => {
+    logger.debug('sync', 'local change', { key: e.detail?.key });
+    schedulePush();
+  });
 
   // Initial session check
   void tryReconcileFromSession();
@@ -165,17 +184,23 @@ async function tryReconcileFromSession() {
   const sb = getSupabase();
   if (!sb) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    logger.info('sync', 'skip reconcile: offline');
     setStatus('offline');
     return;
   }
   try {
     const { data } = await sb.auth.getSession();
+    logger.debug('sync', 'initial session check', {
+      hasSession: Boolean(data.session),
+      userId: data.session?.user?.id,
+    });
     if (data.session?.user) {
       await reconcile(data.session.user.id);
     } else {
       setStatus('signed_out');
     }
-  } catch {
+  } catch (e: any) {
+    logger.error('sync', 'initial session check failed', { err: e?.message });
     setStatus('error');
   }
 }
@@ -190,7 +215,11 @@ async function tryReconcileFromSession() {
  * overwrite a fresh local write with stale cloud data.
  */
 async function reconcile(userId: string): Promise<void> {
-  if (reconcileInFlight) return reconcileInFlight;
+  if (reconcileInFlight) {
+    logger.debug('sync', 'reconcile already in flight, coalescing');
+    return reconcileInFlight;
+  }
+  const reconcileStart = Date.now();
   reconcileInFlight = (async () => {
     const sb = getSupabase();
     if (!sb) return;
@@ -198,6 +227,7 @@ async function reconcile(userId: string): Promise<void> {
       setStatus('offline');
       return;
     }
+    logger.info('sync', 'reconcile start', { userId });
     setStatus('syncing');
     duringReconcile = true;
     dirtyDuringReconcile.clear();
@@ -209,7 +239,20 @@ async function reconcile(userId: string): Promise<void> {
         .eq('user_id', userId)
         .maybeSingle();
       const { data: cloud, error } = await withTimeout(fetch, 15_000, 'fetch');
-      if (error) throw error;
+      if (error) {
+        logger.error('sync', 'reconcile fetch failed', {
+          code: (error as any).code,
+          msg: error.message,
+          hint: (error as any).hint,
+          details: (error as any).details,
+        });
+        throw error;
+      }
+      logger.debug('sync', 'reconcile fetch ok', {
+        cloudRow: Boolean(cloud),
+        hasBookmarks: Array.isArray(cloud?.bookmarks) ? cloud.bookmarks.length : null,
+        hasLastRead: Boolean(cloud?.last_read),
+      });
 
       const payload: Record<string, any> = { user_id: userId };
       let anyChange = false;
@@ -266,18 +309,34 @@ async function reconcile(userId: string): Promise<void> {
       }
 
       if (anyChange) {
+        logger.info('sync', 'reconcile pushing changes', { keys: Object.keys(payload).filter((k) => k !== 'user_id') });
         const push = sb.from('user_data').upsert(payload);
         const { error: pushErr } = await withTimeout(push, 15_000, 'push');
-        if (pushErr) throw pushErr;
+        if (pushErr) {
+          logger.error('sync', 'reconcile push failed', {
+            code: (pushErr as any).code,
+            msg: pushErr.message,
+            hint: (pushErr as any).hint,
+          });
+          throw pushErr;
+        }
       }
+      logger.info('sync', 'reconcile done', { durationMs: Date.now() - reconcileStart, anyChange });
       setStatus('synced');
-    } catch (e) {
-      console.warn('sync: reconcile failed', e);
+    } catch (e: any) {
+      logger.error('sync', 'reconcile failed', {
+        message: e?.message,
+        code: e?.code,
+        durationMs: Date.now() - reconcileStart,
+      });
       setStatus('error');
     } finally {
       duringReconcile = false;
       // Flush any writes that happened during reconcile
       if (dirtyDuringReconcile.size) {
+        logger.info('sync', 'flushing writes that happened during reconcile', {
+          keys: Array.from(dirtyDuringReconcile),
+        });
         for (const k of dirtyDuringReconcile) dirtyKeys.add(k);
         dirtyDuringReconcile.clear();
         schedulePush();
@@ -296,12 +355,22 @@ async function reconcile(userId: string): Promise<void> {
 async function pushKeys(keys: SyncKey[]): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  if (typeof navigator !== 'undefined' && !navigator.onLine) { setStatus('offline'); return; }
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    logger.info('sync', 'push skipped: offline', { keys });
+    setStatus('offline');
+    return;
+  }
 
+  const pushStart = Date.now();
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session?.user) { setStatus('signed_out'); return; }
+    if (!session?.user) {
+      logger.debug('sync', 'push skipped: signed out', { keys });
+      setStatus('signed_out');
+      return;
+    }
 
+    logger.info('sync', 'push start', { keys, userId: session.user.id });
     setStatus('syncing');
     const payload: Record<string, any> = { user_id: session.user.id };
     let anything = false;
@@ -313,14 +382,27 @@ async function pushKeys(keys: SyncKey[]): Promise<void> {
       payload[MAP[k].tsCol] = new Date(ts).toISOString();
       anything = true;
     }
-    if (!anything) { setStatus('synced'); return; }
+    if (!anything) {
+      logger.debug('sync', 'push nothing to send', { keys });
+      setStatus('synced');
+      return;
+    }
 
     const upsert = sb.from('user_data').upsert(payload);
     const { error } = await withTimeout(upsert, 15_000, 'push');
-    if (error) throw error;
+    if (error) {
+      logger.error('sync', 'push backend error', {
+        code: (error as any).code,
+        msg: error.message,
+        hint: (error as any).hint,
+        keys,
+      });
+      throw error;
+    }
+    logger.info('sync', 'push ok', { keys, durationMs: Date.now() - pushStart });
     setStatus('synced');
-  } catch (e) {
-    console.warn('sync: push failed', e);
+  } catch (e: any) {
+    logger.error('sync', 'push failed', { message: e?.message, keys, durationMs: Date.now() - pushStart });
     // Restore dirty flags so next change re-triggers the push
     for (const k of keys) dirtyKeys.add(k);
     setStatus('error');
@@ -359,26 +441,41 @@ function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T
   });
 }
 
-// ───── Auth helpers ─────
-
-// Maps common Supabase error strings to Arabic. Pattern-matches case-
-// insensitively against the message; falls back to raw if no match.
-const ERROR_MAP: Array<[RegExp, string]> = [
+// ───── User-facing error messages ─────
+//
+// SAFETY: We never show the raw backend error to the user. That could
+// leak schema names, SQL fragments, constraint names, or JWT parsing
+// errors. Instead we pattern-match common errors to a fixed Arabic
+// whitelist. Everything else gets a generic message, and the full
+// backend error is written to the logger (where it's useful for us
+// but not visible to attackers inspecting network / UI).
+const ERROR_WHITELIST: Array<[RegExp, string]> = [
   [/email rate limit exceeded/i, 'تم تجاوز حد الإرسال. حاول بعد ساعة أو قم بإعداد خادم بريد مخصص.'],
   [/you can only request this (once|\d+ times?) every (\d+)/i, 'لأسباب أمنية، يمكنك طلب رابط دخول مرة واحدة كل دقيقة. انتظر قليلاً ثم حاول.'],
+  [/over.?email.?send.?rate.?limit|email_send_rate_limit/i, 'تم تجاوز حد الإرسال. حاول لاحقاً.'],
   [/invalid login credentials|invalid email or password/i, 'بيانات الدخول غير صحيحة.'],
   [/user not found/i, 'لم يُعثر على مستخدم بهذا البريد.'],
-  [/email link is invalid or has expired/i, 'رابط الدخول غير صالح أو انتهت صلاحيته. اطلب رابطاً جديداً.'],
-  [/network (request )?failed|failed to fetch/i, 'تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مجدداً.'],
+  [/email link is invalid or has expired|otp.?expired|access_denied/i, 'رابط الدخول غير صالح أو انتهت صلاحيته. اطلب رابطاً جديداً.'],
+  [/network (request )?failed|failed to fetch|fetch aborted/i, 'تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مجدداً.'],
   [/signups (not )?allowed|signup disabled/i, 'التسجيل غير مفعّل حالياً.'],
   [/invalid email|email.*invalid/i, 'بريد إلكتروني غير صالح.'],
   [/timeout/i, 'انتهت مهلة الاتصال. حاول مرة أخرى.'],
+  [/rate.?limit|too many requests/i, 'طلبات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.'],
 ];
-function translateError(msg: string | undefined | null): string {
-  const s = String(msg || '').trim();
-  if (!s) return 'حدث خطأ غير متوقع.';
-  for (const [re, ar] of ERROR_MAP) if (re.test(s)) return ar;
-  return s; // unmapped → show raw
+const GENERIC_ERROR_AR = 'تعذّر إتمام العملية. حاول مجدداً بعد قليل.';
+
+/**
+ * Returns an Arabic user-facing message. Full backend error is written
+ * to the logger so we can debug without exposing it to the user.
+ */
+function userFacingError(e: any, context: string): string {
+  const raw = String(e?.message || e || '').trim();
+  const code = e?.code || e?.status;
+  // Always log the full story for us
+  logger.error('auth-ux', `${context} error`, { message: raw, code, details: e?.details, hint: e?.hint });
+  if (!raw) return GENERIC_ERROR_AR;
+  for (const [re, ar] of ERROR_WHITELIST) if (re.test(raw)) return ar;
+  return GENERIC_ERROR_AR;
 }
 
 /** Sign in via email magic link. */
@@ -387,25 +484,29 @@ export async function signInWithMagicLink(email: string): Promise<{ ok: boolean;
   if (!sb) return { ok: false, error: 'المزامنة غير مفعّلة.' };
   const trimmed = String(email || '').trim();
   if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    logger.warn('auth', 'invalid email format submitted', { length: trimmed.length });
     return { ok: false, error: 'بريد إلكتروني غير صالح.' };
   }
   const redirectTo = `${window.location.origin}/auth/callback/`;
+  logger.info('auth', 'magic link requested', { email: trimmed, redirectTo });
   try {
     const req = sb.auth.signInWithOtp({
       email: trimmed,
       options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
     });
     const { error } = await withTimeout(req, 15_000, 'sign-in');
-    if (error) return { ok: false, error: translateError(error.message) };
+    if (error) return { ok: false, error: userFacingError(error, 'magic-link') };
+    logger.info('auth', 'magic link sent successfully');
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: translateError(e?.message) };
+    return { ok: false, error: userFacingError(e, 'magic-link') };
   }
 }
 
 export async function signOut(): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
+  logger.info('auth', 'sign out requested');
   await sb.auth.signOut();
   dirtyKeys.clear();
   setStatus('signed_out');
@@ -432,12 +533,14 @@ export async function deleteAccountData(): Promise<{ ok: boolean; error?: string
   try {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return { ok: false, error: 'غير مسجَّل الدخول.' };
+    logger.info('auth', 'delete account data requested', { userId: user.id });
     const { error } = await sb.from('user_data').delete().eq('user_id', user.id);
-    if (error) return { ok: false, error: translateError(error.message) };
+    if (error) return { ok: false, error: userFacingError(error, 'delete-data') };
+    logger.info('auth', 'account data deleted');
     await sb.auth.signOut();
     setStatus('signed_out');
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: translateError(e?.message) };
+    return { ok: false, error: userFacingError(e, 'delete-data') };
   }
 }

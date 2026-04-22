@@ -8,6 +8,7 @@
  * will keep working identically to today.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { logger } from './logger';
 
 const URL = import.meta.env.PUBLIC_SUPABASE_URL as string | undefined;
 const ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string | undefined;
@@ -19,8 +20,14 @@ export function isConfigured(): boolean {
 }
 
 export function getSupabase(): SupabaseClient | null {
-  if (!isConfigured()) return null;
+  if (!isConfigured()) {
+    return null;
+  }
   if (!instance) {
+    logger.info('supabase', 'creating client', {
+      url: URL,
+      anonKeyPrefix: ANON!.slice(0, 12),
+    });
     instance = createClient(URL!, ANON!, {
       auth: {
         persistSession: true,

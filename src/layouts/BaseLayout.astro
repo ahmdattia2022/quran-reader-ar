@@ -11,9 +11,10 @@ export interface Props {
   canonical?: string;
   ogType?: 'website' | 'article';
   jsonLd?: Record<string, any>;
+  noindex?: boolean;
 }
 
-const { title, description, canonical, ogType = 'website', jsonLd } = Astro.props;
+const { title, description, canonical, ogType = 'website', jsonLd, noindex = false } = Astro.props;
 
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
@@ -66,9 +67,15 @@ const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toStri
   <meta name="mobile-web-app-capable" content="yes" />
 
   <!-- Robots / SEO -->
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-  <meta name="googlebot" content="index, follow" />
-  <meta name="bingbot" content="index, follow" />
+  {noindex ? (
+    <meta name="robots" content="noindex, nofollow" />
+  ) : (
+    <>
+      <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+      <meta name="googlebot" content="index, follow" />
+      <meta name="bingbot" content="index, follow" />
+    </>
+  )}
 
   <!-- Sitemap discovery -->
   <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />

@@ -63,6 +63,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         لا يستطيع أي مستخدم آخر رؤية بياناتك، ولا نستطيع نحن رؤيتها بغير صلاحيات الإدارة الضرورية للتشغيل.
       </p>
 
+      <h2 class="mt-8 text-2xl font-bold text-white">سجلات الأخطاء (monitoring)</h2>
+      <p>
+        لمراقبة جودة الخدمة وكشف الأعطال، نسجّل أحداثاً تقنية
+        (بدء المزامنة، أخطاء الشبكة، مهلة الاتصال، إلخ) محلياً في متصفحك،
+        ويمكن إرسال نسخة منها إلى خدمة Axiom لمراقبة مركزية عند تفعيلها.
+        هذه السجلات:
+      </p>
+      <ul class="mt-3 space-y-2 pr-6 list-disc marker:text-emerald-400">
+        <li>لا تحتوي على <strong class="text-white">بريدك الإلكتروني</strong> — يُقنَّع جزئياً (مثال: <code class="rounded bg-slate-800/70 px-1 text-xs">ab***@gmail.com</code>).</li>
+        <li>لا تحتوي على <strong class="text-white">معرّفات الحسابات</strong> الخاصة بك.</li>
+        <li>لا تحتوي على <strong class="text-white">توكنات الجلسات</strong> أو كلمات المرور.</li>
+        <li>لا تحتوي على <strong class="text-white">آيات قرأتها أو بحوثك</strong> — فقط أحداث تقنية مثل "بدء مزامنة"، "فشل اتصال".</li>
+        <li>تُحذف تلقائياً من السيرفر بعد <strong class="text-white">٣٠ يوماً</strong>.</li>
+      </ul>
+      <p class="mt-3">
+        يمكنك مراجعة كل السجلات المحفوظة محلياً في متصفحك من صفحة
+        <a href="/debug/" class="text-emerald-400 underline hover:text-emerald-300">debug</a>،
+        وتصديرها كملف JSON إذا أردت مشاركتها مع المطوّر لحل مشكلة ما.
+      </p>
+
       <h2 class="mt-8 text-2xl font-bold text-white">العمل بدون إنترنت (PWA)</h2>
       <p>
         الموقع يُثبَّت كتطبيق على جهازك ويعمل بدون إنترنت عبر
