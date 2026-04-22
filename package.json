@@ -23,5 +23,8 @@
     "adhan": "^4.4.3",
     "astro": "^6.1.8",
     "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "pg": "^8.20.0"
   }
 }

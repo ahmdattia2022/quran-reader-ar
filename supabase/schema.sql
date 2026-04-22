@@ -108,6 +108,14 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- 5) Backfill — safe to run repeatedly ---------------------------------
+-- Creates an empty user_data row for any existing auth user who
+-- signed up before the trigger was installed.
+
+insert into public.user_data (user_id)
+select id from auth.users
+on conflict (user_id) do nothing;
+
 -- =================================================================
 -- Verification queries (run after setup to confirm):
 -- =================================================================
